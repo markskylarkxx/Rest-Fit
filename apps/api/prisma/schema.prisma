@@ -1,0 +1,403 @@
+// Every gym-owned table carries gymId so one deployment serves many gyms.
+// Money is stored in kobo (Int).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StaffRole {
+  OWNER
+  ADMIN
+  FRONT_DESK
+  TRAINER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  POS
+  ONLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum ReminderKind {
+  DAYS_7
+  DAYS_3
+  DAYS_1
+  EXPIRED
+}
+
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  EXPERIENCED
+}
+
+enum PlanDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+// What kind of work a training plan day involves. Movement days are walks
+// and home workouts; strength days are gym sessions with exercises and sets.
+enum PlanDayKind {
+  STRENGTH
+  MOVEMENT
+  REST
+}
+
+model Gym {
+  id            String         @id @default(cuid())
+  name          String
+  joinCode      String         @unique
+  phone         String?
+  address       String?
+  lat           Float?
+  lng           Float?
+  createdAt     DateTime       @default(now())
+  staff         Staff[]
+  plans         Plan[]
+  members       Member[]
+  subscriptions Subscription[]
+  payments      Payment[]
+  checkIns      CheckIn[]
+  reminders     Reminder[]
+}
+
+model Staff {
+  id           String    @id @default(cuid())
+  gymId        String
+  gym          Gym       @relation(fields: [gymId], references: [id])
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         StaffRole
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  payments     Payment[]
+  checkIns     CheckIn[]
+
+  @@index([gymId])
+}
+
+model Plan {
+  id            String         @id @default(cuid())
+  gymId         String
+  gym           Gym            @relation(fields: [gymId], references: [id])
+  name          String
+  priceKobo     Int
+  durationDays  Int
+  active        Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  subscriptions Subscription[]
+
+  @@index([gymId])
+}
+
+model Member {
+  id               String         @id @default(cuid())
+  gymId            String
+  gym              Gym            @relation(fields: [gymId], references: [id])
+  userId           String?
+  user             MemberUser?    @relation(fields: [userId], references: [id])
+  firstName        String
+  lastName         String
+  phone            String
+  email            String?
+  gender           Gender?
+  emergencyContact String?
+  notes            String?
+  checkInCode      String         @unique
+  createdAt        DateTime       @default(now())
+  subscriptions    Subscription[]
+  payments         Payment[]
+  checkIns         CheckIn[]
+  reminders        Reminder[]
+
+  @@unique([gymId, phone])
+  @@index([gymId])
+  @@index([userId])
+}
+
+model MemberUser {
+  id              String            @id @default(cuid())
+  phone           String            @unique
+  createdAt       DateTime          @default(now())
+  lastLoginAt     DateTime          @default(now())
+  experienceLevel ExperienceLevel?
+  members         Member[]
+  snapshot        WorkoutSnapshot?
+  workouts        Workout[]
+  templates       WorkoutTemplate[]
+  prs             PersonalRecord[]
+  weights         WeightEntry[]
+  trainingPlans   UserTrainingPlan[]
+}
+
+model WorkoutSnapshot {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      MemberUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      Json
+  sizeBytes Int
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Workout {
+  id          String            @id @default(cuid())
+  userId      String
+  user        MemberUser        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime
+  durationMin Int
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  exercises   WorkoutExercise[]
+
+  @@index([userId, date(sort: Desc)])
+}
+
+model WorkoutExercise {
+  id         String       @id @default(cuid())
+  workoutId  String
+  workout    Workout      @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exerciseId String
+  name       String
+  order      Int
+  sets       WorkoutSet[]
+
+  @@index([workoutId])
+  @@index([exerciseId])
+}
+
+model WorkoutSet {
+  id         String          @id @default(cuid())
+  exerciseId String
+  exercise   WorkoutExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  order      Int
+  reps       Int
+  weightKg   Float
+
+  @@index([exerciseId])
+}
+
+model WorkoutTemplate {
+  id          String     @id @default(cuid())
+  userId      String
+  user        MemberUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  exerciseIds String[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId])
+}
+
+model PersonalRecord {
+  id           String     @id @default(cuid())
+  userId       String
+  user         MemberUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseName String
+  weightKg     Float
+  reps         Int
+  achievedAt   DateTime
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([userId, exerciseName])
+  @@index([userId])
+}
+
+model WeightEntry {
+  id        String     @id @default(cuid())
+  userId    String
+  user      MemberUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kg        Float
+  date      DateTime
+  createdAt DateTime   @default(now())
+
+  @@index([userId, date(sort: Desc)])
+}
+
+model OtpCode {
+  id         String    @id @default(cuid())
+  phone      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+}
+
+model Subscription {
+  id        String             @id @default(cuid())
+  gymId     String
+  gym       Gym                @relation(fields: [gymId], references: [id])
+  memberId  String
+  member    Member             @relation(fields: [memberId], references: [id])
+  planId    String
+  plan      Plan               @relation(fields: [planId], references: [id])
+  startDate DateTime?
+  endDate   DateTime?
+  status    SubscriptionStatus @default(PENDING)
+  createdAt DateTime           @default(now())
+  payments  Payment[]
+  reminders Reminder[]
+
+  @@index([gymId, status, endDate])
+  @@index([memberId])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  gymId          String
+  gym            Gym           @relation(fields: [gymId], references: [id])
+  memberId       String
+  member         Member        @relation(fields: [memberId], references: [id])
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  amountKobo     Int
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  orchPayTxnId   String?       @unique
+  orchPayRef     String?       @unique
+  paymentLink    String?
+  failureReason  String?
+  recordedById   String?
+  recordedBy     Staff?        @relation(fields: [recordedById], references: [id])
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+
+  @@index([gymId, status, paidAt])
+}
+
+model CheckIn {
+  id        String   @id @default(cuid())
+  gymId     String
+  gym       Gym      @relation(fields: [gymId], references: [id])
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id])
+  staffId   String?
+  staff     Staff?   @relation(fields: [staffId], references: [id])
+  allowed   Boolean
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([gymId, createdAt])
+}
+
+model Reminder {
+  id             String       @id @default(cuid())
+  gymId          String
+  gym            Gym          @relation(fields: [gymId], references: [id])
+  memberId       String
+  member         Member       @relation(fields: [memberId], references: [id])
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  kind           ReminderKind
+  sentAt         DateTime     @default(now())
+
+  @@unique([subscriptionId, kind])
+}
+
+// ─────────────────────────────────────────────────────
+// Training plans — workout programs users enroll in.
+// Distinct from `Plan` (membership plans sold by gyms).
+// ─────────────────────────────────────────────────────
+
+model TrainingPlan {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  name        String
+  tagline     String
+  description String
+  difficulty  PlanDifficulty
+  weeks       Int
+  daysPerWeek Int
+  createdAt   DateTime        @default(now())
+  planWeeks   TrainingPlanWeek[]
+  enrollments UserTrainingPlan[]
+
+  @@index([difficulty])
+}
+
+model TrainingPlanWeek {
+  id         String             @id @default(cuid())
+  planId     String
+  plan       TrainingPlan       @relation(fields: [planId], references: [id], onDelete: Cascade)
+  weekNumber Int
+  label      String?
+  days       TrainingPlanDay[]
+
+  @@unique([planId, weekNumber])
+  @@index([planId])
+}
+
+model TrainingPlanDay {
+  id             String               @id @default(cuid())
+  weekId         String
+  week           TrainingPlanWeek     @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  dayNumber      Int
+  label          String
+  kind           PlanDayKind
+  notes          String?
+  exercises      TrainingPlanExercise[]
+
+  @@unique([weekId, dayNumber])
+  @@index([weekId])
+}
+
+model TrainingPlanExercise {
+  id           String          @id @default(cuid())
+  dayId        String
+  day          TrainingPlanDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  order        Int
+  exerciseId   String
+  name         String
+  targetSets   Int
+  targetReps   Int
+  targetWeight Float?
+
+  @@index([dayId])
+}
+
+model UserTrainingPlan {
+  id              String        @id @default(cuid())
+  userId          String
+  user            MemberUser    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId          String
+  plan            TrainingPlan  @relation(fields: [planId], references: [id])
+  startedAt       DateTime      @default(now())
+  completedAt     DateTime?
+  currentWeek     Int           @default(1)
+  currentDay      Int           @default(1)
+  completedDays   Int           @default(0)
+  active          Boolean       @default(true)
+
+  @@index([userId, active])
+}

@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply bg-canvas text-ink;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
+  ::selection {
+    background: #c8ff00;
+    color: #0a0a0a;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-button bg-lime px-6 py-3 text-sm font-semibold text-canvas transition hover:bg-lime-hover active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-button border border-white/10 bg-white/[0.03] px-6 py-3 text-sm font-semibold text-ink transition hover:bg-white/[0.06];
+  }
+
+  .card {
+    @apply rounded-card border border-white/[0.06] bg-white/[0.02] p-6;
+  }
+
+  .input {
+    @apply w-full rounded-button border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-ink placeholder:text-white/30 transition focus:border-lime/50 focus:outline-none focus:ring-1 focus:ring-lime/30;
+  }
+
+  .label {
+    @apply mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.15em] text-lime;
+  }
+
+  .h1 {
+    @apply text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl;
+  }
+
+  .h2 {
+    @apply text-3xl font-extrabold leading-[1.1] tracking-tight sm:text-4xl;
+  }
+
+  .h3 {
+    @apply text-xl font-bold tracking-tight sm:text-2xl;
+  }
+
+  .body-lg {
+    @apply text-base leading-relaxed text-white/60 sm:text-lg;
+  }
+}

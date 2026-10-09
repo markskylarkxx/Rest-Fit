@@ -1,0 +1,19 @@
+{
+  "name": "restfit",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @restfit/api & npm run dev -w @restfit/admin & wait",
+    "dev:api": "npm run dev -w @restfit/api",
+    "dev:admin": "npm run dev -w @restfit/admin",
+    "dev:landing": "npm run dev -w @restfit/landing",
+    "build": "npm run build -w @restfit/api && npm run build -w @restfit/admin",
+    "build:landing": "npm run build -w @restfit/landing",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:migrate": "npm run db:migrate -w @restfit/api",
+    "db:seed": "npm run db:seed -w @restfit/api"
+  }
+}

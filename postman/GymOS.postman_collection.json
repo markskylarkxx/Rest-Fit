@@ -1,0 +1,718 @@
+{
+  "info": {
+    "name": "Gym OS API",
+    "description": "Run \"Auth / Login\" first: it saves the token, and every other request uses it automatically. \"Plans / List plans\" saves a planId, \"Members / Add member\" saves a memberId. The \"Member app\" folder uses a separate member login: run \"Request code\" then \"Verify code\" (in development the code is returned in the response as devCode and saved automatically).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "planId",
+      "value": ""
+    },
+    {
+      "key": "memberId",
+      "value": ""
+    },
+    {
+      "key": "paymentId",
+      "value": ""
+    },
+    {
+      "key": "checkInCode",
+      "value": "DEMO1000"
+    },
+    {
+      "key": "joinCode",
+      "value": "IRONLEK"
+    },
+    {
+      "key": "memberPhone",
+      "value": "08067778888"
+    },
+    {
+      "key": "otpCode",
+      "value": ""
+    },
+    {
+      "key": "memberToken",
+      "value": ""
+    },
+    {
+      "key": "appMemberId",
+      "value": ""
+    },
+    {
+      "key": "appPaymentId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.token) pm.collectionVariables.set('token', d.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner@demo.gym\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register a new gym",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.token) pm.collectionVariables.set('token', d.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gymName\": \"Body Shop Ikeja\",\n  \"ownerName\": \"Ada Obi\",\n  \"email\": \"ada@bodyshop.ng\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Me (current user)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Staff",
+      "item": [
+        {
+          "name": "List staff",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/staff"
+          }
+        },
+        {
+          "name": "Add staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/staff",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Front Desk Bola\",\n  \"email\": \"bola@demo.gym\",\n  \"password\": \"password123\",\n  \"role\": \"FRONT_DESK\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Plans",
+      "item": [
+        {
+          "name": "List plans",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.length) pm.collectionVariables.set('planId', d[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/plans"
+          }
+        },
+        {
+          "name": "Create plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/plans",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Student Monthly\",\n  \"priceKobo\": 1500000,\n  \"durationDays\": 30\n}"
+            },
+            "description": "priceKobo is in kobo: 1500000 = ₦15,000"
+          }
+        },
+        {
+          "name": "Hide plan",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/plans/{{planId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": false\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Members",
+      "item": [
+        {
+          "name": "List members",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/members?status=all&q=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "members"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "all | active | expiring | inactive"
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Search name, phone, email or check-in code"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.id) { pm.collectionVariables.set('memberId', d.id); pm.collectionVariables.set('checkInCode', d.checkInCode); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/members",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Kene\",\n  \"lastName\": \"Mark\",\n  \"phone\": \"08035551234\",\n  \"email\": \"kene@example.com\",\n  \"gender\": \"MALE\",\n  \"emergencyContact\": \"Ada - 08030000001\",\n  \"notes\": \"Wants to lose 10kg\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get member",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/members/{{memberId}}"
+          }
+        },
+        {
+          "name": "Update member",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/members/{{memberId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Bad left knee, avoid heavy squats\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reset QR code",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/members/{{memberId}}/reset-code"
+          }
+        },
+        {
+          "name": "Start membership (cash)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/members/{{memberId}}/subscriptions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"{{planId}}\",\n  \"method\": \"CASH\"\n}"
+            },
+            "description": "method: CASH | TRANSFER | POS | ONLINE"
+          }
+        },
+        {
+          "name": "Start membership (online via Orch-Pay)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.payment) pm.collectionVariables.set('paymentId', d.payment.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/members/{{memberId}}/subscriptions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"{{planId}}\",\n  \"method\": \"ONLINE\"\n}"
+            },
+            "description": "Needs ORCHPAY_API_KEY set in apps/api/.env. Returns payment.paymentLink."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Check-in",
+      "item": [
+        {
+          "name": "Check in by code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/checkins",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{checkInCode}}\"\n}"
+            },
+            "description": "Demo codes: DEMO1000 (active) ... DEMO1004 (expired)"
+          }
+        },
+        {
+          "name": "Recent check-ins",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/checkins"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "List payments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/payments?status=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "SUCCESS | PENDING | FAILED (empty = all)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Check online payment status",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/payments/{{paymentId}}/refresh"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/dashboard"
+      }
+    },
+    {
+      "name": "Member app",
+      "item": [
+        {
+          "name": "Find gym by join code (public)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/app/gyms/{{joinCode}}",
+            "description": "What a member sees before signing up: gym details and active plans."
+          }
+        },
+        {
+          "name": "Request code",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/app/auth/request-code",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{memberPhone}}\"\n}"
+            },
+            "description": "Sends a 6-digit code by SMS/WhatsApp. In development (no Termii key) the code is returned as devCode. One code per minute, 5 per hour."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.devCode) pm.collectionVariables.set('otpCode', d.devCode);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify code (sign in)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/app/auth/verify",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{memberPhone}}\",\n  \"code\": \"{{otpCode}}\"\n}"
+            },
+            "description": "Returns a member token (30 days) and any gym memberships already linked to this phone, including ones staff created."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.token) pm.collectionVariables.set('memberToken', d.token);",
+                  "if (d.memberships && d.memberships.length) pm.collectionVariables.set('appMemberId', d.memberships[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me (home screen)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/app/me"
+          }
+        },
+        {
+          "name": "Join gym",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/app/gyms/{{joinCode}}/join",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Zainab\",\n  \"lastName\": \"Bello\",\n  \"email\": \"zainab@example.com\",\n  \"gender\": \"FEMALE\"\n}"
+            },
+            "description": "Creates the membership record, or links the one staff already created for this phone (alreadyMember: true)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.memberId) pm.collectionVariables.set('appMemberId', d.memberId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Membership details",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/app/memberships/{{appMemberId}}",
+            "description": "Plan, QR check-in code, history. Staff notes are never included."
+          }
+        },
+        {
+          "name": "Update my profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/app/memberships/{{appMemberId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emergencyContact\": \"Mum - 08020000000\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Renew / buy plan (online)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/app/memberships/{{appMemberId}}/renew",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"{{planId}}\"\n}"
+            },
+            "description": "Returns an Orch-Pay paymentLink to open. Needs ORCHPAY_API_KEY. Run Plans > List plans (staff) or 'Find gym' to get a planId."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.paymentId) pm.collectionVariables.set('appPaymentId', d.paymentId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Check payment status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{memberToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/app/memberships/{{appMemberId}}/payments/{{appPaymentId}}/refresh"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhook (called by Orch-Pay)",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Webhook-Timestamp",
+            "value": ""
+          },
+          {
+            "key": "X-Webhook-Signature",
+            "value": ""
+          }
+        ],
+        "url": "{{baseUrl}}/webhooks/orchpay",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"event\":\"payment.success\",\"data\":{\"transactionReference\":\"ORCH-REF-1\",\"status\":\"SUCCESS\"}}"
+        },
+        "description": "Orch-Pay calls this, not you. Without a valid HMAC signature it returns 401, which is expected."
+      }
+    }
+  ]
+}
