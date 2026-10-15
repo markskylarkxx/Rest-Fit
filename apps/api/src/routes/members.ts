@@ -4,10 +4,12 @@ import { memberSchema, startSubscriptionSchema } from "@restfit/shared";
 import { newCheckInCode } from "../lib/codes.js";
 import { db } from "../lib/db.js";
 import { notFound } from "../lib/errors.js";
-import { auth, requireAuth, requireRole } from "../middleware/auth.js";
+import { auth, requireActiveBilling, requireAuth, requireRole } from "../middleware/auth.js";
 import { startSubscription } from "../services/memberships.js";
 
 export const membersRouter = Router();
+// Front desk keeps working while the gym's RestFit billing is paused, so
+// members can still check in and renew. Back-office routes are gated below.
 membersRouter.use(requireAuth);
 
 // Latest-ending subscription that is paid for and not yet over.
@@ -59,7 +61,7 @@ membersRouter.get("/", async (req, res) => {
   );
 });
 
-membersRouter.post("/", async (req, res) => {
+membersRouter.post("/", requireActiveBilling, async (req, res) => {
   const input = memberSchema.parse(req.body);
   const member = await db.member.create({ data: { ...input, gymId: auth(req).gymId, checkInCode: newCheckInCode() } });
   res.status(201).json(member);
@@ -82,15 +84,16 @@ membersRouter.get("/:id", async (req, res) => {
   res.json({ ...member, activeUntil: current?.endDate ?? null });
 });
 
-membersRouter.patch("/:id", async (req, res) => {
+membersRouter.patch("/:id", requireActiveBilling, async (req, res) => {
+  const id = req.params.id as string;
   const input = memberSchema.partial().parse(req.body);
-  const { count } = await db.member.updateMany({ where: { id: req.params.id, gymId: auth(req).gymId }, data: input });
+  const { count } = await db.member.updateMany({ where: { id, gymId: auth(req).gymId }, data: input });
   if (!count) throw notFound("Member");
-  res.json(await db.member.findUnique({ where: { id: req.params.id } }));
+  res.json(await db.member.findUnique({ where: { id } }));
 });
 
 // Issues a new QR code, e.g. when a member's card is lost.
-membersRouter.post("/:id/reset-code", requireRole("OWNER", "ADMIN"), async (req, res) => {
+membersRouter.post("/:id/reset-code", requireActiveBilling, requireRole("OWNER", "ADMIN"), async (req, res) => {
   const id = req.params.id as string;
   const { count } = await db.member.updateMany({
     where: { id, gymId: auth(req).gymId },

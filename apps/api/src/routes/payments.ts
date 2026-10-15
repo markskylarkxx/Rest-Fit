@@ -1,13 +1,14 @@
 import { Router } from "express";
 import { db } from "../lib/db.js";
 import { notFound } from "../lib/errors.js";
-import { auth, requireAuth } from "../middleware/auth.js";
+import { auth, requireActiveBilling, requireAuth } from "../middleware/auth.js";
 import { refreshPayment } from "../services/memberships.js";
 
 export const paymentsRouter = Router();
+// Confirming a member's renewal payment stays open; the history list is gated.
 paymentsRouter.use(requireAuth);
 
-paymentsRouter.get("/", async (req, res) => {
+paymentsRouter.get("/", requireActiveBilling, async (req, res) => {
   const status = req.query.status ? String(req.query.status) : undefined;
   res.json(
     await db.payment.findMany({

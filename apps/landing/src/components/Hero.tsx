@@ -1,21 +1,22 @@
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, MessageCircle } from "lucide-react";
+import { whatsappLink } from "../lib/whatsapp";
 
 export function Hero() {
   return (
     <section className="relative overflow-hidden px-6 pt-32 pb-20 sm:pt-40 sm:pb-28">
-      {/* Ambient glow */}
       <div className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-lime/[0.08] blur-[120px]" />
 
       <div className="relative mx-auto max-w-6xl">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          {/* Left: copy */}
           <div>
             <p className="eyebrow">Gym management for Nigeria</p>
 
             <h1 className="h1 mt-4">
               Your members are leaving.
               <br />
-              <span className="text-lime">RestFit tells you before they do.</span>
+              <span className="text-lime">
+                RestFit tells you before they do.
+              </span>
             </h1>
 
             <p className="body-lg mt-6 max-w-xl">
@@ -29,8 +30,14 @@ export function Hero() {
                 Sign up your gym
                 <ArrowRight size={16} />
               </a>
-              <a href="#solution" className="btn-secondary">
-                See how it works
+              <a
+                href={whatsappLink()}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary"
+              >
+                <MessageCircle size={16} />
+                I'm interested
               </a>
             </div>
 
@@ -54,10 +61,8 @@ export function Hero() {
             </ul>
           </div>
 
-          {/* Right: dashboard mockup */}
           <div className="relative">
             <div className="relative rounded-2xl border border-white/[0.08] bg-surface p-5 shadow-2xl shadow-black/50">
-              {/* Browser chrome */}
               <div className="mb-4 flex items-center gap-1.5">
                 <div className="h-3 w-3 rounded-full bg-white/10" />
                 <div className="h-3 w-3 rounded-full bg-white/10" />
@@ -67,7 +72,6 @@ export function Hero() {
                 </div>
               </div>
 
-              {/* Mockup content */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -86,7 +90,6 @@ export function Hero() {
                   </div>
                 </div>
 
-                {/* At-risk card highlight */}
                 <div className="rounded-xl border border-lime/20 bg-lime/[0.06] p-3">
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-lime">
@@ -133,7 +136,6 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Glow behind */}
             <div className="pointer-events-none absolute inset-0 -z-10 rounded-2xl bg-lime/[0.06] blur-3xl" />
           </div>
         </div>

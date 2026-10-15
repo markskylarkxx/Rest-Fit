@@ -52,3 +52,84 @@ PART C — At-Risk Members dashboard
 The B2B killer feature. A gym owner sees members who haven't checked in recently, but have logged workouts on Gym OS. They're not gone. They're training elsewhere. The owner can reach out with the right message.
 
 This is the feature no other gym software in Nigeria can build, because they don't have a universal fitness app feeding them data.
+
+****************************************
+Part 1: The differentiation — honest answer
+
+Yes, FirstRep exists. Yes, they're in Nigeria. Yes, they've pivoted to B2B. But what you're building is fundamentally different. Let me show you exactly where.
+
+What FirstRep actually is
+
+FirstRep started as a fitness app and pivoted to B2B gym management with AI. Today they offer:
+
+Gym management (members, churn insights, leaderboards)
+AI coach called "Jemila" that reaches out to inactive members
+A marketplace where personal trainers get discovered and booked
+AI agent "Rep" with 109 tools that builds programs, manages clients, handles billing
+Progress tracking with body measurements, photos, PRs
+They are trainer/coach-first, not gym-first
+Their core pitch: "Stop doing it all yourself." They sell to personal trainers and coaches who manage clients. The gym tools came later as an extension.
+
+What Gymly is
+
+Gymly is a Chilean startup (not Nigerian) that raised no funding, operates in Chile and Peru, and has 200 users in pilot. Their model is standard gym SaaS: member management, class scheduling, payments, check-in. Nothing AI-native. Nothing Nigerian. They're 3–5 years behind where you are in terms of product depth.
+
+Where you are genuinely different
+
+1. You're gym-first, not trainer-first.
+
+FirstRep sells to trainers. Their whole language is about coaching clients. Gym OS sells to gym owners — the person who owns the building, hires staff, and needs to know who's about to churn. That's a different buyer, different pain, different sale.
+
+2. You have the "Training Elsewhere" insight.
+
+This is your killer feature. When a member stops checking in, FirstRep tells the gym they're inactive. You tell the gym whether they're still training on the app somewhere else. A member who logs 3 workouts on RestFit this week but hasn't scanned in at Iron Gym is not a churn risk — they're training elsewhere. That's a completely different retention conversation.
+
+No other Nigerian gym software can build this because none of them have a universal consumer app feeding them data.
+
+3. AI plan generation that members actually use.
+
+FirstRep's AI builds programs for trainers to assign to clients. Your AI builds programs directly for members who have no trainer. A gym-goer with no coach answers 4 questions and gets a 4-week plan. That's the universal layer no competitor has.
+
+4. The "I'm interested" WhatsApp button.
+
+You built this today. Nigerian gym owners live on WhatsApp. FirstRep's funnel is a form and a marketplace. Yours is a one-tap conversation that starts on the platform they already trust.
+
+5. You have the split admin architecture.
+
+FirstRep has one dashboard. You have three: public landing, gym dashboard, platform admin. That separation isn't just cleaner — it's product maturity. Gym owners see only their data. You see the whole forest. Nobody does that at your stage.
+
+The honest risks
+
+FirstRep is funded and moving fast. They're hiring, shipping every week, and building AI agents with 109 tools. You're solo.
+They have testimonials and users. You have zero. This is the only gap that matters.
+They're already telling gyms to "talk to us". Their sales motion is the same as yours.
+The bottom line
+
+You are not building something that doesn't exist. FirstRep exists. But you are building something different enough to win a specific segment:
+
+Gyms that want a member-facing fitness app, not just a management tool. A gym where members use RestFit to track workouts independently — even on days they don't come to the gym — has data no competitor can match.
+Gym owners who want to have a WhatsApp conversation, not fill a form. Your "I'm interested" button is a wedge.
+The At-Risk insight. "Training elsewhere" is genuinely novel. Nobody else can build it.
+Your differentiation isn't the feature list. It's the architecture: universal consumer app feeding a B2B retention engine. That's what FirstRep doesn't have because they started as a trainer tool.
+
+App	Local port	Production domain	Job
+apps/api	4000	api.myrestfit.com	The backend. Every app talks to it.
+apps/member	5173	(Android APK)	The fitness app for gym-goers
+apps/admin	5173	app.myrestfit.com	The dashboard for gym owners
+apps/platform	5174	admin.myrestfit.com	NEW — the internal tool for you
+apps/landing	5175	myrestfit.com	The marketing site
+
+
+
+
+
+THE PLAN*******
+
+Phase 1 — Gym detail page (this message)
+Phase 2 — Subscriptions & billing (next message)
+Phase 3 — Platform At-Risk gyms
+Phase 4 — Leads CRM
+Phase 5 — Waitlist management
+Phase 6 — Analytics dashboard
+Phase 7 — Communication log
+Phase 8 — Platform team + impersonate + audit log

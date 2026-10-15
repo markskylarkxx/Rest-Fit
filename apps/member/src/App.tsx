@@ -10,6 +10,8 @@ import {
   getCachedExperience,
 } from "./lib/experience";
 import { LoginPage } from "./pages/LoginPage";
+import { PinPage } from "./pages/PinPage";
+import { SetPinPage } from "./pages/SetPinPage";
 import { VerifyPage } from "./pages/VerifyPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { HomePage } from "./pages/HomePage";
@@ -82,6 +84,8 @@ export function App() {
     <Routes>
       <Route path="/" element={<LoginPage />} />
       <Route path="/verify" element={<VerifyPage />} />
+      <Route path="/pin" element={<PinPage />} />
+      <Route path="/set-pin" element={<SetPinPage />} />
 
       <Route element={<NavLayout />}>
         <Route

@@ -11,7 +11,8 @@
     "seed:plans": "tsx src/seed/index.ts",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "mfa:reset": "tsx scripts/reset-mfa.ts"
   },
   "dependencies": {
     "@restfit/shared": "*",

@@ -1,13 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import type { LoginInput, RegisterGymInput } from "@restfit/shared";
+import type { LoginInput } from "@restfit/shared";
 import { api, tokenStore } from "./api";
 import type { Staff } from "./types";
 
 interface AuthState {
   staff: Staff | null;
   loading: boolean;
-  login: (input: LoginInput) => Promise<void>;
-  register: (input: RegisterGymInput) => Promise<void>;
+  // Resolves to "mfa" when the account needs a code from its authenticator app.
+  login: (input: LoginInput) => Promise<"mfa" | "done">;
+  verifyMfa: (code: string) => Promise<void>;
+  // "sign-in" when the account has two-step login and must sign in normally.
+  completeSetup: (input: { token: string; password: string }) => Promise<"done" | "sign-in">;
   logout: () => void;
 }
 
@@ -16,6 +19,7 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [staff, setStaff] = useState<Staff | null>(null);
   const [loading, setLoading] = useState(Boolean(tokenStore.get()));
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (!tokenStore.get()) return;
@@ -34,8 +38,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthState = {
     staff,
     loading,
-    login: async (input) => signIn((await api.post("/auth/login", input)).data),
-    register: async (input) => signIn((await api.post("/auth/register", input)).data),
+    login: async (input) => {
+      const { data } = await api.post("/auth/login", input);
+      if (data.mfaRequired) {
+        setMfaToken(data.mfaToken);
+        return "mfa";
+      }
+      signIn(data);
+      return "done";
+    },
+    verifyMfa: async (code) => {
+      signIn((await api.post("/auth/mfa/verify", { mfaToken, code })).data);
+      setMfaToken(null);
+    },
+    completeSetup: async (input) => {
+      const { data } = await api.post("/auth/setup", input);
+      if (data.signInRequired) return "sign-in";
+      signIn(data);
+      return "done";
+    },
     logout: () => {
       tokenStore.clear();
       setStaff(null);

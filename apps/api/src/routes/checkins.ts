@@ -6,6 +6,8 @@ import { auth, requireAuth } from "../middleware/auth.js";
 import { daysBetween, findActiveSubscription } from "../services/subscriptions.js";
 
 export const checkInsRouter = Router();
+// Not gated by billing: members must be able to check in even when the
+// gym's RestFit subscription is paused.
 checkInsRouter.use(requireAuth);
 
 // Called when the front desk scans a member's QR code (or types the code).

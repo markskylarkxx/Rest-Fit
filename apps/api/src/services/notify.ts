@@ -8,7 +8,7 @@ const toInternational = (phone: string) => {
   return digits.startsWith("0") ? `234${digits.slice(1)}` : digits;
 };
 
-export async function sendMessage(phone: string, text: string) {
+export async function sendMessage(phone: string, text: string, channel = env.TERMII_CHANNEL) {
   if (!env.TERMII_API_KEY) {
     console.log(`[message → ${phone}] ${text}`);
     return;
@@ -22,9 +22,23 @@ export async function sendMessage(phone: string, text: string) {
       from: env.TERMII_SENDER_ID,
       sms: text,
       type: "plain",
-      channel: env.TERMII_CHANNEL,
+      channel,
     }),
     signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) throw new Error(`Termii ${res.status}: ${await res.text()}`);
+}
+
+// Sign-in codes: WhatsApp first when enabled (usually cheaper than SMS in
+// Nigeria and more reliable on DND numbers), falling back to SMS.
+export async function sendCode(phone: string, text: string) {
+  if (env.OTP_WHATSAPP_FIRST && env.TERMII_API_KEY) {
+    try {
+      await sendMessage(phone, text, "whatsapp");
+      return;
+    } catch (err) {
+      console.error("WhatsApp code failed, falling back to SMS:", err);
+    }
+  }
+  await sendMessage(phone, text);
 }

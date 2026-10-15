@@ -75,20 +75,19 @@ export interface MemberDetail extends Omit<MemberSummary, "planName"> {
 }
 
 export interface Dashboard {
-  totalMembers: number;
+  gym: { name: string; joinCode: string; status: string } | null;
   activeMembers: number;
   revenueThisMonthKobo: number;
-  revenueLastMonthKobo: number;
-  pendingPaymentsKobo: number;
-  pendingPaymentsCount: number;
+  revenueChangePct: number | null;
+  endingThisWeek: number;
   checkInsToday: number;
-  expiringThisWeek: {
-    subscriptionId: string;
-    member: { id: string; firstName: string; lastName: string; phone: string };
-    plan: string;
-    endDate: string;
+  pendingPayments: number;
+  recentCheckIns: {
+    id: string;
+    at: string;
+    allowed: boolean;
+    memberName: string;
   }[];
-  recentCheckIns: CheckIn[];
 }
 
 export interface CheckInResult {

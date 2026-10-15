@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { db } from "../lib/db.js";
-import { auth, requireAuth } from "../middleware/auth.js";
+import { auth, requireActiveBilling, requireAuth } from "../middleware/auth.js";
 import { getAtRiskMembers } from "../services/atRisk.js";
 
 export const dashboardRouter = Router();
 
-dashboardRouter.use(requireAuth);
+dashboardRouter.use(requireAuth, requireActiveBilling);
 
 dashboardRouter.get("/", async (req, res) => {
   const { gymId } = auth(req);
@@ -76,7 +76,7 @@ dashboardRouter.get("/", async (req, res) => {
     }),
     db.gym.findUnique({
       where: { id: gymId },
-      select: { name: true, joinCode: true },
+      select: { name: true, joinCode: true, status: true },
     }),
   ]);
 
@@ -114,3 +114,6 @@ dashboardRouter.get("/at-risk", async (req, res) => {
   const minDays = Number(req.query.minDays) || 10;
   res.json(await getAtRiskMembers(gymId, minDays));
 });
+
+
+

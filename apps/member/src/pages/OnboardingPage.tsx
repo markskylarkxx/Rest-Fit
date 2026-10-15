@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dumbbell, Flame, Sparkles, HelpCircle } from "lucide-react";
 import { setExperience, type ExperienceLevel } from "../lib/experience";
 import { useAuth } from "../lib/auth";
-import { Button, Card } from "../components/ui";
+import { api, errorMessage } from "../lib/api";
+import { Button, Card, Field, Input } from "../components/ui";
 
 const OPTIONS: {
   value: ExperienceLevel;
@@ -33,8 +34,77 @@ const OPTIONS: {
 ];
 
 export function OnboardingPage() {
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [named, setNamed] = useState(Boolean(user?.firstName));
+  if (!named) return <NameStep onDone={() => setNamed(true)} />;
+  return <ExperienceStep />;
+}
+
+// "What should we call you?" Pre-filled when a gym already registered them.
+function NameStep({ onDone }: { onDone: () => void }) {
   const { updateUser } = useAuth();
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .get<{ user: { firstName: string | null }; memberships: { firstName: string }[] }>("/app/me")
+      .then(({ data }) => {
+        const known = data.user.firstName ?? data.memberships.find((m) => m.firstName)?.firstName;
+        if (known) setName((current) => current || known);
+      })
+      .catch(() => {});
+  }, []);
+
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const { data } = await api.put<{ firstName: string }>("/app/me/name", { firstName: name });
+      updateUser({ firstName: data.firstName });
+      onDone();
+    } catch (err) {
+      setError(errorMessage(err));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen flex-col px-6 py-10">
+      <div className="flex flex-1 flex-col items-center justify-center">
+        <h1 className="text-3xl font-bold tracking-tight text-white">What should we call you?</h1>
+        <p className="mt-2 max-w-xs text-center text-sm text-white/50">Just your first name.</p>
+
+        <form onSubmit={save} className="mt-10 w-full max-w-sm space-y-4">
+          <Field label="First name" error={error ?? undefined}>
+            <Input
+              autoFocus
+              autoComplete="given-name"
+              autoCapitalize="words"
+              maxLength={40}
+              placeholder="Ada"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </Field>
+          <Button type="submit" disabled={busy || !name.trim()} className="w-full">
+            {busy ? "Saving…" : "Continue"}
+          </Button>
+        </form>
+      </div>
+
+      <button onClick={onDone} disabled={busy} className="mt-8 self-center text-sm text-white/40">
+        Skip for now
+      </button>
+    </div>
+  );
+}
+
+function ExperienceStep() {
+  const navigate = useNavigate();
+  const { user, updateUser } = useAuth();
   const [busy, setBusy] = useState<ExperienceLevel | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +128,7 @@ export function OnboardingPage() {
     <div className="flex min-h-screen flex-col px-6 py-10">
       <div className="flex flex-1 flex-col items-center justify-center">
         <h1 className="text-3xl font-bold tracking-tight text-white">
-          Welcome
+          {user?.firstName ? `Welcome, ${user.firstName}` : "Welcome"}
         </h1>
         <p className="mt-2 max-w-xs text-center text-sm text-white/50">
           One quick question. It changes how the app treats you — no pressure,

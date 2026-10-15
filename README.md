@@ -753,3 +753,18 @@ Every gym-goer has one login
 The app becomes the fitness identity layer for Nigeria
 Gym Pass (pay once, use any gym) becomes the consumer product
 Portable identity + trust layer — the fitness infrastructure for Nigeria
+
+<!-- 
+
+One thing to fix in the plan
+
+You don't need to buy three separate domains. You buy one — myrestfit.com — and use subdomains:
+
+myrestfit.com → Vercel (landing page)
+www.myrestfit.com → redirect to myrestfit.com
+app.myrestfit.com → Vercel (gym dashboard)
+admin.myrestfit.com → Vercel (platform admin)
+api.myrestfit.com → Railway (backend)
+Cost: one domain ($11/year). Four subdomains free.
+
+You've already found myrestfit.com available at $10.98/year. Buy that one. Everything else is a subdomain. -->

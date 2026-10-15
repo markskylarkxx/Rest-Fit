@@ -61,8 +61,6 @@ enum PlanDifficulty {
   ADVANCED
 }
 
-// What kind of work a training plan day involves. Movement days are walks
-// and home workouts; strength days are gym sessions with exercises and sets.
 enum PlanDayKind {
   STRENGTH
   MOVEMENT
@@ -70,21 +68,33 @@ enum PlanDayKind {
 }
 
 model Gym {
-  id            String         @id @default(cuid())
-  name          String
-  joinCode      String         @unique
-  phone         String?
-  address       String?
-  lat           Float?
-  lng           Float?
-  createdAt     DateTime       @default(now())
-  staff         Staff[]
-  plans         Plan[]
-  members       Member[]
-  subscriptions Subscription[]
-  payments      Payment[]
-  checkIns      CheckIn[]
-  reminders     Reminder[]
+  id             String         @id @default(cuid())
+  name           String
+  joinCode       String         @unique
+  phone          String?
+  address        String?
+  lat            Float?
+  lng            Float?
+  // Gyms are only created when the operator approves a GymApplication, so new
+  // rows start APPROVED. PENDING only exists on gyms from the old self-serve
+  // signup; staff of a gym that isn't APPROVED can't sign in.
+  status         String         @default("APPROVED") // APPROVED | PENDING | REJECTED
+  trialStartedAt DateTime       @default(now())
+  trialEndsAt    DateTime?
+  plan           String         @default("TRIAL") // TRIAL | MONTHLY | ANNUAL
+  // Paid through this date (set by GymPayment). Access lasts until the later
+  // of this and trialEndsAt, plus a short grace period.
+  paidUntil      DateTime?
+  createdAt      DateTime       @default(now())
+  application    GymApplication?
+  gymPayments    GymPayment[]
+  staff          Staff[]
+  plans          Plan[]
+  members        Member[]
+  subscriptions  Subscription[]
+  payments       Payment[]
+  checkIns       CheckIn[]
+  reminders      Reminder[]
 }
 
 model Staff {
@@ -97,10 +107,88 @@ model Staff {
   role         StaffRole
   active       Boolean   @default(true)
   createdAt    DateTime  @default(now())
+  isPlatformAdmin Boolean   @default(false)
   payments     Payment[]
   checkIns     CheckIn[]
+  setupTokens  PasswordSetupToken[]
+  reviewedApplications GymApplication[]
+  gymPaymentsRecorded GymPayment[]
+  // Sessions issued before this (e.g. before a password reset) are rejected.
+  sessionsValidAfter DateTime?
+
+  // Two-step login (authenticator app). Required for platform admins.
+  // totpSecret is AES-GCM encrypted; it's set at enrollment and only active
+  // once totpEnabledAt is set.
+  totpSecret      String?
+  totpEnabledAt   DateTime?
+  totpLastStep    Int?       // last accepted 30s time step, blocks code replay
+  mfaFailedCount  Int        @default(0)
+  mfaLockedUntil  DateTime?
+  recoveryCodes   MfaRecoveryCode[]
 
   @@index([gymId])
+}
+
+// Single-use backup codes for when the authenticator app is unavailable.
+model MfaRecoveryCode {
+  id        String    @id @default(cuid())
+  staffId   String
+  staff     Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  codeHash  String    @unique
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([staffId])
+}
+
+// One-time link that lets a newly approved owner choose their password.
+// Only the SHA-256 of the token is stored.
+model PasswordSetupToken {
+  id        String    @id @default(cuid())
+  staffId   String
+  staff     Staff     @relation(fields: [staffId], references: [id])
+  tokenHash String    @unique
+  purpose   String    @default("SETUP") // SETUP (new owner) | RESET (forgot password)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([staffId])
+}
+
+// A gym paying RestFit for its own subscription (not a member payment).
+model GymPayment {
+  id             String    @id @default(cuid())
+  gymId          String
+  gym            Gym       @relation(fields: [gymId], references: [id])
+  plan           String    // MONTHLY | ANNUAL
+  amountKobo     Int
+  method         String    // ONLINE | TRANSFER | CASH
+  status         String    @default("PENDING") // PENDING | SUCCESS | FAILED
+  orchPayTxnId   String?   @unique
+  orchPayRef     String?   @unique
+  paymentLink    String?
+  failureReason  String?
+  note           String?
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  recordedById   String?
+  recordedBy     Staff?    @relation(fields: [recordedById], references: [id])
+  paidAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([gymId, createdAt(sort: Desc)])
+  @@index([status, paidAt])
+}
+
+// Shared rate-limit counters, so limits survive restarts and work across
+// several API instances without needing Redis.
+model RateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+
+  @@index([resetAt])
 }
 
 model Plan {
@@ -145,6 +233,8 @@ model Member {
 model MemberUser {
   id              String            @id @default(cuid())
   phone           String            @unique
+  // What the app calls them. Asked at onboarding; gym records hold their own copy.
+  firstName       String?
   createdAt       DateTime          @default(now())
   lastLoginAt     DateTime          @default(now())
   experienceLevel ExperienceLevel?
@@ -155,6 +245,29 @@ model MemberUser {
   prs             PersonalRecord[]
   weights         WeightEntry[]
   trainingPlans   UserTrainingPlan[]
+  sessions        MemberSession[]
+
+  // Sign-in PIN, set once after the phone is verified. After 5 wrong tries
+  // in a row it locks and only a code to the phone (Forgot PIN) unlocks it.
+  pinHash         String?
+  pinSetAt        DateTime?
+  pinFailedCount  Int               @default(0)
+  pinLockedAt     DateTime?
+}
+
+// One signed-in device. The refresh token rotates on every use and expires
+// after 90 days without use, so active members stay signed in for good.
+model MemberSession {
+  id         String     @id @default(cuid())
+  userId     String
+  user       MemberUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String     @unique
+  expiresAt  DateTime
+  lastUsedAt DateTime   @default(now())
+  revokedAt  DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@index([userId])
 }
 
 model WorkoutSnapshot {
@@ -331,15 +444,15 @@ model Reminder {
 // ─────────────────────────────────────────────────────
 
 model TrainingPlan {
-  id          String          @id @default(cuid())
-  slug        String          @unique
+  id          String             @id @default(cuid())
+  slug        String             @unique
   name        String
   tagline     String
   description String
   difficulty  PlanDifficulty
   weeks       Int
   daysPerWeek Int
-  createdAt   DateTime        @default(now())
+  createdAt   DateTime           @default(now())
   planWeeks   TrainingPlanWeek[]
   enrollments UserTrainingPlan[]
 
@@ -347,9 +460,9 @@ model TrainingPlan {
 }
 
 model TrainingPlanWeek {
-  id         String             @id @default(cuid())
+  id         String            @id @default(cuid())
   planId     String
-  plan       TrainingPlan       @relation(fields: [planId], references: [id], onDelete: Cascade)
+  plan       TrainingPlan      @relation(fields: [planId], references: [id], onDelete: Cascade)
   weekNumber Int
   label      String?
   days       TrainingPlanDay[]
@@ -359,14 +472,14 @@ model TrainingPlanWeek {
 }
 
 model TrainingPlanDay {
-  id             String               @id @default(cuid())
-  weekId         String
-  week           TrainingPlanWeek     @relation(fields: [weekId], references: [id], onDelete: Cascade)
-  dayNumber      Int
-  label          String
-  kind           PlanDayKind
-  notes          String?
-  exercises      TrainingPlanExercise[]
+  id        String                @id @default(cuid())
+  weekId    String
+  week      TrainingPlanWeek      @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  dayNumber Int
+  label     String
+  kind      PlanDayKind
+  notes     String?
+  exercises TrainingPlanExercise[]
 
   @@unique([weekId, dayNumber])
   @@index([weekId])
@@ -387,17 +500,72 @@ model TrainingPlanExercise {
 }
 
 model UserTrainingPlan {
-  id              String        @id @default(cuid())
-  userId          String
-  user            MemberUser    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId          String
-  plan            TrainingPlan  @relation(fields: [planId], references: [id])
-  startedAt       DateTime      @default(now())
-  completedAt     DateTime?
-  currentWeek     Int           @default(1)
-  currentDay      Int           @default(1)
-  completedDays   Int           @default(0)
-  active          Boolean       @default(true)
+  id            String       @id @default(cuid())
+  userId        String
+  user          MemberUser   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId        String
+  plan          TrainingPlan @relation(fields: [planId], references: [id])
+  startedAt     DateTime     @default(now())
+  completedAt   DateTime?
+  currentWeek   Int          @default(1)
+  currentDay    Int          @default(1)
+  completedDays Int          @default(0)
+  active        Boolean      @default(true)
 
   @@index([userId, active])
+}
+
+// ─────────────────────────────────────────────────────
+// Landing page signups.
+// ─────────────────────────────────────────────────────
+
+// A gym owner's request to join, from the landing page. The phone number is
+// OTP-verified. Nothing is created in Gym/Staff until the operator approves.
+model GymApplication {
+  id              String    @id @default(cuid())
+  gymName         String
+  ownerName       String
+  email           String
+  phone           String
+  city            String
+  status          String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  rejectionReason String?
+  reviewedAt      DateTime?
+  reviewedById    String?
+  reviewedBy      Staff?    @relation(fields: [reviewedById], references: [id])
+  gymId           String?   @unique
+  gym             Gym?      @relation(fields: [gymId], references: [id])
+  createdAt       DateTime  @default(now())
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([phone])
+  @@index([email])
+}
+
+model GymLead {
+  id          String    @id @default(cuid())
+  gymName     String
+  ownerName   String
+  phone       String    @unique
+  email       String
+  role        String
+  status      String    @default("NEW")
+  notes       String?
+  contactedAt DateTime?
+  onboardedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, createdAt(sort: Desc)])
+}
+
+model Waitlist {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  email     String
+  reason    String
+  city      String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
 }

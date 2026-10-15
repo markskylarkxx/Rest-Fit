@@ -133,6 +133,7 @@ function heroCopy(level: ExperienceLevel, streak: number) {
 
 export function HomePage() {
   const [memberships, setMemberships] = useState<Membership[] | null>(null);
+  const [accountName, setAccountName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -144,8 +145,11 @@ export function HomePage() {
 
   useEffect(() => {
     api
-      .get<{ memberships: Membership[] }>("/app/me")
-      .then((res) => setMemberships(res.data.memberships))
+      .get<{ user: { firstName: string | null }; memberships: Membership[] }>("/app/me")
+      .then((res) => {
+        setAccountName(res.data.user.firstName);
+        setMemberships(res.data.memberships);
+      })
       .catch((err) => setError(errorMessage(err)));
     fetchExperience().then((level) => {
       if (level) setExperience(level);
@@ -188,7 +192,8 @@ export function HomePage() {
     );
   if (!memberships) return <Spinner />;
 
-  const firstName = memberships.find((m) => m.firstName)?.firstName ?? "";
+  // Their own name first, then the name a gym registered them under.
+  const firstName = accountName || memberships.find((m) => m.firstName)?.firstName || "";
   const streak = computeStreak(workouts);
   const thisWeek = computeWorkoutsThisWeek(workouts);
   const week = weekStrip(workouts);

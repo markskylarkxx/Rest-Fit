@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Activity,
@@ -11,6 +11,7 @@ import {
   Sparkles,
   User as UserIcon,
 } from "lucide-react";
+import { api, errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import {
   fetchExperience,
@@ -18,7 +19,7 @@ import {
   type ExperienceLevel,
 } from "../lib/experience";
 import { getCurrentPlan, type CurrentPlan } from "../lib/trainingPlans";
-import { Button, Card, LogoCircle } from "../components/ui";
+import { Button, Card, Input, LogoCircle } from "../components/ui";
 
 const LEVELS: {
   value: ExperienceLevel;
@@ -32,7 +33,11 @@ const LEVELS: {
 
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [level, setLevel] = useState<ExperienceLevel | null>(null);
   const [saving, setSaving] = useState<ExperienceLevel | null>(null);
   const [plan, setPlan] = useState<CurrentPlan | null | undefined>(undefined);
@@ -43,6 +48,21 @@ export function ProfilePage() {
       .then(setPlan)
       .catch(() => setPlan(null));
   }, []);
+
+  const saveName = async (e: FormEvent) => {
+    e.preventDefault();
+    setSavingName(true);
+    setNameError(null);
+    try {
+      const { data } = await api.put<{ firstName: string }>("/app/me/name", { firstName: nameDraft });
+      updateUser({ firstName: data.firstName });
+      setEditingName(false);
+    } catch (err) {
+      setNameError(errorMessage(err));
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   const change = async (l: ExperienceLevel) => {
     if (l === level) return;
@@ -66,10 +86,36 @@ export function ProfilePage() {
 
       <div className="space-y-4 px-6">
         <Card className="flex items-center gap-4">
-          <LogoCircle name={user?.phone ?? "U"} size="lg" />
-          <div>
-            <p className="text-xs text-white/40">Phone number</p>
-            <p className="mt-0.5 font-semibold text-white">{user?.phone}</p>
+          <LogoCircle name={user?.firstName || user?.phone || "U"} size="lg" />
+          <div className="min-w-0 flex-1">
+            {editingName ? (
+              <form onSubmit={saveName} className="flex items-center gap-2">
+                <Input
+                  autoFocus
+                  autoComplete="given-name"
+                  autoCapitalize="words"
+                  maxLength={40}
+                  placeholder="First name"
+                  value={nameDraft}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                />
+                <Button type="submit" disabled={savingName || !nameDraft.trim()}>
+                  {savingName ? "…" : "Save"}
+                </Button>
+              </form>
+            ) : (
+              <button
+                onClick={() => {
+                  setNameDraft(user?.firstName ?? "");
+                  setEditingName(true);
+                }}
+                className="text-left"
+              >
+                <p className="font-semibold text-white">{user?.firstName || "Add your name"}</p>
+                <p className="mt-0.5 text-xs text-white/40">{user?.phone} · Tap to edit name</p>
+              </button>
+            )}
+            {nameError && <p className="mt-1 text-xs text-red-400">{nameError}</p>}
           </div>
         </Card>
 

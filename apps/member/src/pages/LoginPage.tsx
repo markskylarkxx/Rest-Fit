@@ -17,12 +17,17 @@ export function LoginPage() {
     setBusy(true);
     try {
       const normalised = normalisePhone(phone);
-      const { data } = await api.post("/app/auth/request-code", {
-        phone: normalised,
-      });
-      navigate("/verify", {
-        state: { phone: normalised, devCode: data.devCode },
-      });
+      // Members with a PIN enter it (no SMS); new members get a code.
+      const { data } = await api.post<
+        { next: "PIN"; locked: boolean } | { next: "CODE"; devCode?: string }
+      >("/app/auth/start", { phone: normalised });
+      if (data.next === "PIN") {
+        navigate("/pin", { state: { phone: normalised, locked: data.locked } });
+      } else {
+        navigate("/verify", {
+          state: { phone: normalised, devCode: data.devCode },
+        });
+      }
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -40,7 +45,7 @@ export function LoginPage() {
           Welcome to RestFit
         </h1>
         <p className="mt-2 max-w-xs text-center text-sm text-white/50">
-          Rest. Train. Repeat. Sign in with your phone number.
+          New here or coming back? Enter your phone number to continue.
         </p>
 
         <Card className="mt-10 w-full max-w-sm">
@@ -60,7 +65,7 @@ export function LoginPage() {
               disabled={busy || !phone.trim()}
               className="w-full"
             >
-              {busy ? "Sending…" : "Send code"}
+              {busy ? "Checking…" : "Continue"}
             </Button>
           </form>
         </Card>

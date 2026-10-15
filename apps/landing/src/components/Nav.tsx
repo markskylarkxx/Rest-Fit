@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, MessageCircle } from "lucide-react";
+import { whatsappLink } from "../lib/whatsapp";
 
 const LINKS = [
   { href: "#problem", label: "Why it matters" },
@@ -50,7 +51,16 @@ export function Nav() {
           ))}
         </nav>
 
-        <div className="hidden md:block">
+        <div className="hidden items-center gap-3 md:flex">
+          <a
+            href={whatsappLink()}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-button border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white/[0.06]"
+          >
+            <MessageCircle size={14} />
+            I'm interested
+          </a>
           <a href="#signup" className="btn-primary">
             Sign up your gym
           </a>
@@ -79,9 +89,19 @@ export function Nav() {
               </a>
             ))}
             <a
+              href={whatsappLink()}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setOpen(false)}
+              className="mt-2 inline-flex items-center justify-center gap-2 rounded-button border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/[0.06]"
+            >
+              <MessageCircle size={14} />
+              I'm interested
+            </a>
+            <a
               href="#signup"
               onClick={() => setOpen(false)}
-              className="btn-primary mt-2"
+              className="btn-primary"
             >
               Sign up your gym
             </a>

@@ -1,9 +1,9 @@
-// One-time sign-in codes for the member app, sent by SMS/WhatsApp.
+// One-time codes that verify a phone number, sent by WhatsApp or SMS.
 import crypto from "node:crypto";
 import { env } from "../env.js";
 import { db } from "../lib/db.js";
 import { HttpError } from "../lib/errors.js";
-import { sendMessage } from "./notify.js";
+import { sendCode } from "./notify.js";
 
 const TTL_MS = 10 * 60 * 1000;
 const RESEND_AFTER_MS = 60 * 1000;
@@ -26,7 +26,7 @@ export async function requestOtp(phone: string) {
 
   const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
   await db.otpCode.create({ data: { phone, codeHash: hash(phone, code), expiresAt: new Date(Date.now() + TTL_MS) } });
-  await sendMessage(phone, `Your Gym OS code is ${code}. It expires in 10 minutes. Don't share it with anyone.`);
+  await sendCode(phone, `Your RestFit code is ${code}. It expires in 10 minutes. Don't share it with anyone.`);
 
   const devMode = !env.TERMII_API_KEY && env.NODE_ENV !== "production";
   return devMode ? { devCode: code } : {};

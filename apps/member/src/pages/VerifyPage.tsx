@@ -1,23 +1,17 @@
 import { useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api, errorMessage } from "../lib/api";
-import { useAuth, type ExperienceLevel } from "../lib/auth";
 import { Button, Card, Field, Input } from "../components/ui";
 
 interface VerifyResponse {
-  token: string;
-  user: {
-    id: string;
-    phone: string;
-    experienceLevel: ExperienceLevel | null;
-  };
+  pinSetupToken: string;
+  isReset: boolean;
 }
 
 export function VerifyPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setSession } = useAuth();
-  const state = location.state as { phone: string; devCode?: string } | null;
+  const state = location.state as { phone: string; devCode?: string; reset?: boolean } | null;
 
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -38,15 +32,11 @@ export function VerifyPage() {
         code,
       });
 
-      setSession(data.token, data.user);
-
-      // New users have no experience level yet. Send them through
-      // onboarding first. Returning users go straight Home.
-      if (data.user.experienceLevel) {
-        navigate("/home", { replace: true });
-      } else {
-        navigate("/onboarding", { replace: true });
-      }
+      // Phone verified: next, choose a PIN (new members and resets alike).
+      navigate("/set-pin", {
+        replace: true,
+        state: { pinSetupToken: data.pinSetupToken, isReset: data.isReset },
+      });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -67,7 +57,9 @@ export function VerifyPage() {
         Check your phone
       </h1>
       <p className="mt-2 text-sm text-white/50">
-        We sent a 6-digit code to {state.phone}
+        {state.reset
+          ? `To reset your PIN, enter the 6-digit code we sent to ${state.phone}`
+          : `We sent a 6-digit code to ${state.phone} to confirm it's your number. You'll only need this once.`}
       </p>
 
       {state.devCode && (

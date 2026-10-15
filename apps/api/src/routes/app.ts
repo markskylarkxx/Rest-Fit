@@ -10,10 +10,11 @@ import {
 import { newCheckInCode } from "../lib/codes.js";
 import { db } from "../lib/db.js";
 import { HttpError, notFound } from "../lib/errors.js";
-import { memberAuth, requireMember, signMemberToken } from "../middleware/auth.js";
+import { memberAuth, requireMember } from "../middleware/auth.js";
 import { distanceKm, findNearbyGyms } from "../services/places.js";
 import { refreshPayment, startSubscription } from "../services/memberships.js";
-import { requestOtp, verifyOtp } from "../services/otp.js";
+import { refreshSession, revokeSession, sendResetCode, setPin, signInWithPin, startSignIn, verifyPhone } from "../services/memberAuth.js";
+import { rateLimit } from "../lib/rateLimit.js";
 import {
   createTemplate,
   deleteTemplate,
@@ -140,34 +141,70 @@ const experienceSchema = z.object({
 });
 
 // ── Sign in ──────────────────────────────────────────
-appRouter.post("/auth/request-code", async (req, res) => {
+// Phone + PIN. A code (SMS) is only sent to verify a new phone or reset a
+// PIN; after that the device stays signed in with a rotating refresh token.
+// See services/memberAuth.ts. Per-IP limits sit on top of the per-phone code
+// limits in services/otp.ts. They're generous because Nigerian mobile
+// networks put many people behind one IP.
+const startLimit = rateLimit({ name: "member-start", windowMs: 60 * 60 * 1000, max: 60 });
+const codeLimit = rateLimit({ name: "member-code", windowMs: 60 * 60 * 1000, max: 20 });
+const verifyLimit = rateLimit({ name: "member-verify", windowMs: 15 * 60 * 1000, max: 30 });
+const pinLimit = rateLimit({ name: "member-pin", windowMs: 15 * 60 * 1000, max: 30 });
+const refreshLimit = rateLimit({ name: "member-refresh", windowMs: 15 * 60 * 1000, max: 120 });
+
+const pinSchema = z.string().trim();
+
+async function sessionResponse(session: { userId: string; accessToken: string; refreshToken: string }) {
+  const user = await db.memberUser.findUniqueOrThrow({
+    where: { id: session.userId },
+    select: { id: true, phone: true, firstName: true, experienceLevel: true },
+  });
+  return {
+    token: session.accessToken,
+    refreshToken: session.refreshToken,
+    user,
+    memberships: await membershipsFor(user.id),
+  };
+}
+
+// Step 1: PIN for members who have one, otherwise a code is sent.
+appRouter.post("/auth/start", startLimit, async (req, res) => {
   const { phone } = otpRequestSchema.parse(req.body);
-  res.json({ sent: true, ...(await requestOtp(phone)) });
+  res.json(await startSignIn(phone));
 });
 
-appRouter.post("/auth/verify", async (req, res) => {
+// "Forgot PIN" / locked PIN: send a code.
+appRouter.post("/auth/forgot-pin", codeLimit, async (req, res) => {
+  const { phone } = otpRequestSchema.parse(req.body);
+  res.json({ sent: true, ...(await sendResetCode(phone)) });
+});
+
+// Step 2 for new members and resets: check the code, then choose a PIN.
+appRouter.post("/auth/verify", verifyLimit, async (req, res) => {
   const { phone, code } = otpVerifySchema.parse(req.body);
-  await verifyOtp(phone, code);
+  res.json(await verifyPhone(phone, code));
+});
 
-  const user = await db.memberUser.upsert({
-    where: { phone },
-    create: { phone },
-    update: { lastLoginAt: new Date() },
-  });
-  await db.member.updateMany({
-    where: { phone, userId: null },
-    data: { userId: user.id },
-  });
+appRouter.post("/auth/set-pin", pinLimit, async (req, res) => {
+  const { pinSetupToken, pin } = z.object({ pinSetupToken: z.string().min(1), pin: pinSchema }).parse(req.body);
+  res.json(await sessionResponse(await setPin(pinSetupToken, pin)));
+});
 
-  res.json({
-    token: signMemberToken({ userId: user.id }),
-    user: {
-      id: user.id,
-      phone: user.phone,
-      experienceLevel: user.experienceLevel,
-    },
-    memberships: await membershipsFor(user.id),
-  });
+// Returning member on a new device.
+appRouter.post("/auth/pin", pinLimit, async (req, res) => {
+  const { phone, pin } = otpRequestSchema.extend({ pin: pinSchema }).parse(req.body);
+  res.json(await sessionResponse(await signInWithPin(phone, pin)));
+});
+
+appRouter.post("/auth/refresh", refreshLimit, async (req, res) => {
+  const { refreshToken } = z.object({ refreshToken: z.string().min(1) }).parse(req.body);
+  res.json(await refreshSession(refreshToken));
+});
+
+appRouter.post("/auth/logout", refreshLimit, async (req, res) => {
+  const { refreshToken } = z.object({ refreshToken: z.string().min(1) }).parse(req.body);
+  await revokeSession(refreshToken);
+  res.json({ ok: true });
 });
 
 // ── Public gym lookups ───────────────────────────────
@@ -182,7 +219,7 @@ appRouter.get("/gyms/nearby", async (req, res) => {
   }
 
   const gymOSGyms = await db.gym.findMany({
-    where: { lat: { not: null }, lng: { not: null } },
+    where: { status: "APPROVED", lat: { not: null }, lng: { not: null } },
     select: {
       id: true,
       name: true,
@@ -261,8 +298,8 @@ appRouter.get("/gyms/nearby", async (req, res) => {
 });
 
 appRouter.get("/gyms/:joinCode", async (req, res) => {
-  const gym = await db.gym.findUnique({
-    where: { joinCode: param(req.params.joinCode).toUpperCase() },
+  const gym = await db.gym.findFirst({
+    where: { joinCode: param(req.params.joinCode).toUpperCase(), status: "APPROVED" },
     select: {
       ...gymPublic,
       plans: {
@@ -282,9 +319,21 @@ appRouter.use(requireMember);
 appRouter.get("/me", async (req, res) => {
   const user = await db.memberUser.findUniqueOrThrow({
     where: { id: memberAuth(req).userId },
-    select: { id: true, phone: true, experienceLevel: true },
+    select: { id: true, phone: true, firstName: true, experienceLevel: true },
   });
   res.json({ user, memberships: await membershipsFor(user.id) });
+});
+
+const nameSchema = z.object({ firstName: z.string().trim().min(1, "Enter your first name").max(40) });
+
+appRouter.put("/me/name", async (req, res) => {
+  const { firstName } = nameSchema.parse(req.body);
+  const user = await db.memberUser.update({
+    where: { id: memberAuth(req).userId },
+    data: { firstName },
+    select: { firstName: true },
+  });
+  res.json(user);
 });
 
 appRouter.get("/me/experience", async (req, res) => {
@@ -311,8 +360,8 @@ appRouter.post("/gyms/:joinCode/join", async (req, res) => {
   const input = joinGymSchema.parse(req.body);
   const [user, gym] = await Promise.all([
     db.memberUser.findUniqueOrThrow({ where: { id: userId } }),
-    db.gym.findUnique({
-      where: { joinCode: param(req.params.joinCode).toUpperCase() },
+    db.gym.findFirst({
+      where: { joinCode: param(req.params.joinCode).toUpperCase(), status: "APPROVED" },
     }),
   ]);
   if (!gym) throw notFound("Gym");

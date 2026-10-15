@@ -1,15 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Link } from "react-router-dom";
 import { Dumbbell } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { Link } from "react-router-dom";
-import { loginSchema, registerGymSchema, type LoginInput, type RegisterGymInput } from "@restfit/shared";
+import { loginSchema, type LoginInput } from "@restfit/shared";
 import { Field, Input } from "../components/ui";
-import { errorMessage } from "../lib/api";
+import { api, errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
-function AuthShell({ title, subtitle, children, footer }: { title: string; subtitle: string; children: ReactNode; footer: ReactNode }) {
+const LANDING_SIGNUP_URL = `${import.meta.env.VITE_LANDING_URL ?? "https://myrestfit.com"}/#signup`;
+
+export function AuthShell({ title, subtitle, children, footer }: { title: string; subtitle: string; children: ReactNode; footer: ReactNode }) {
   return (
     <div className="grid min-h-screen place-items-center p-4">
       <div className="w-full max-w-sm">
@@ -30,15 +32,18 @@ function AuthShell({ title, subtitle, children, footer }: { title: string; subti
 
 export function LoginPage() {
   const { login } = useAuth();
+  const [needsCode, setNeedsCode] = useState(false);
   const { register, handleSubmit, formState } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      await login(values);
+      if ((await login(values)) === "mfa") setNeedsCode(true);
     } catch (err) {
       toast.error(errorMessage(err));
     }
   });
+
+  if (needsCode) return <MfaCodeStep onRestart={() => setNeedsCode(false)} />;
 
   return (
     <AuthShell
@@ -46,7 +51,10 @@ export function LoginPage() {
       subtitle="Sign in to manage your gym"
       footer={
         <>
-          New gym? <Link to="/register" className="font-medium text-brand-700">Create an account</Link>
+          New gym?{" "}
+          <a href={LANDING_SIGNUP_URL} className="font-medium text-brand-700">
+            Apply for a free trial
+          </a>
         </>
       }
     >
@@ -57,6 +65,11 @@ export function LoginPage() {
         <Field label="Password" error={formState.errors.password?.message}>
           <Input type="password" autoComplete="current-password" {...register("password")} />
         </Field>
+        <div className="-mt-2 text-right">
+          <Link to="/forgot-password" className="text-xs font-medium text-brand-700">
+            Forgot password?
+          </Link>
+        </div>
         <button className="btn-primary w-full" disabled={formState.isSubmitting}>
           {formState.isSubmitting ? "Signing in…" : "Sign in"}
         </button>
@@ -65,46 +78,90 @@ export function LoginPage() {
   );
 }
 
-export function RegisterPage() {
-  const { register: signUp } = useAuth();
-  const { register, handleSubmit, formState } = useForm<RegisterGymInput>({ resolver: zodResolver(registerGymSchema) });
+// Second sign-in step for accounts with two-step login (platform admins).
+function MfaCodeStep({ onRestart }: { onRestart: () => void }) {
+  const { verifyMfa } = useAuth();
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const onSubmit = handleSubmit(async (values) => {
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
     try {
-      await signUp(values);
-      toast.success("Your gym is set up. Add your membership plans next.");
+      await verifyMfa(code);
     } catch (err) {
       toast.error(errorMessage(err));
+      setCode("");
+      if ((err as { response?: { status?: number } }).response?.status === 401) onRestart();
+      setBusy(false);
     }
-  });
+  };
 
   return (
     <AuthShell
-      title="Set up your gym"
-      subtitle="Takes under a minute"
+      title="Two-step login"
+      subtitle="Enter the 6-digit code from your authenticator app, or a recovery code."
       footer={
-        <>
-          Already have an account? <Link to="/login" className="font-medium text-brand-700">Sign in</Link>
-        </>
+        <button type="button" onClick={onRestart} className="font-medium text-brand-700">
+          Start again
+        </button>
       }
     >
       <form onSubmit={onSubmit} className="space-y-4">
-        <Field label="Gym name" error={formState.errors.gymName?.message}>
-          <Input autoFocus {...register("gymName")} />
+        <Field label="Code">
+          <Input autoFocus autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} />
         </Field>
-        <Field label="Your name" error={formState.errors.ownerName?.message}>
-          <Input autoComplete="name" {...register("ownerName")} />
-        </Field>
-        <Field label="Email" error={formState.errors.email?.message}>
-          <Input type="email" autoComplete="email" {...register("email")} />
-        </Field>
-        <Field label="Password" error={formState.errors.password?.message}>
-          <Input type="password" autoComplete="new-password" {...register("password")} />
-        </Field>
-        <button className="btn-primary w-full" disabled={formState.isSubmitting}>
-          {formState.isSubmitting ? "Creating…" : "Create gym"}
+        <button className="btn-primary w-full" disabled={busy || code.trim().length < 6}>
+          {busy ? "Checking…" : "Verify"}
         </button>
       </form>
+    </AuthShell>
+  );
+}
+
+export function ForgotPasswordPage() {
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await api.post("/auth/forgot-password", { email });
+      setSent(true);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <AuthShell
+      title="Reset your password"
+      subtitle={sent ? "Check your phone" : "We'll text a reset link to your gym's phone number"}
+      footer={
+        <Link to="/login" className="font-medium text-brand-700">
+          Back to sign in
+        </Link>
+      }
+    >
+      {sent ? (
+        <p className="text-sm text-slate-600">
+          If {email} belongs to a gym owner account, we've sent a reset link to the gym's phone number. It expires in 1 hour.
+          Staff accounts: ask your gym owner to reset your password.
+        </p>
+      ) : (
+        <form onSubmit={onSubmit} className="space-y-4">
+          <Field label="Email">
+            <Input type="email" autoComplete="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </Field>
+          <button className="btn-primary w-full" disabled={busy}>
+            {busy ? "Sending…" : "Send reset link"}
+          </button>
+        </form>
+      )}
     </AuthShell>
   );
 }

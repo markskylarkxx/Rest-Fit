@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../lib/db.js";
+import { completeGymPayment } from "../services/gymBilling.js";
 import { completePayment } from "../services/memberships.js";
 import { verifyWebhook, type OrchPayWebhook } from "../services/orchpay.js";
 
@@ -17,8 +18,17 @@ webhooksRouter.post("/orchpay", async (req, res) => {
   const payment = await db.payment.findFirst({
     where: { OR: [{ orchPayRef: { in: refs } }, { orchPayTxnId: { in: refs } }] },
   });
-  // Acknowledge unknown references so Orch-Pay doesn't keep retrying them.
-  if (!payment) return res.json({ received: true, matched: false });
+  if (!payment) {
+    // Not a member payment; maybe a gym paying for its RestFit subscription.
+    const gymPayment = await db.gymPayment.findFirst({
+      where: { OR: [{ orchPayRef: { in: refs } }, { orchPayTxnId: { in: refs } }] },
+    });
+    // Acknowledge unknown references so Orch-Pay doesn't keep retrying them.
+    if (!gymPayment) return res.json({ received: true, matched: false });
+    if (event === "payment.success") await completeGymPayment(gymPayment.id, true);
+    if (event === "payment.failed") await completeGymPayment(gymPayment.id, false, data.failureReason);
+    return res.json({ received: true, matched: true });
+  }
 
   if (event === "payment.success") await completePayment(payment.id, true);
   if (event === "payment.failed") await completePayment(payment.id, false, data.failureReason);

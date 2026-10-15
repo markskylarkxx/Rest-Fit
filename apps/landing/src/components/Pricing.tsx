@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { whatsappLink } from "../lib/whatsapp";
 
 const FEATURES = [
   "Unlimited members",
@@ -13,7 +14,10 @@ const FEATURES = [
 
 export function Pricing() {
   return (
-    <section id="pricing" className="border-t border-white/[0.06] px-6 py-20 sm:py-28">
+    <section
+      id="pricing"
+      className="border-t border-white/[0.06] px-6 py-20 sm:py-28"
+    >
       <div className="mx-auto max-w-3xl">
         <div className="text-center">
           <p className="eyebrow">Pricing</p>
@@ -56,12 +60,23 @@ export function Pricing() {
             ))}
           </div>
 
-          <a
-            href="#signup"
-            className="btn-primary mt-8 w-full justify-center"
-          >
+          <a href="#signup" className="btn-primary mt-8 w-full justify-center">
             Start free trial
           </a>
+
+          <p className="mt-4 text-center text-xs text-white/40">
+            Not sure yet?{" "}
+            <a
+              href={whatsappLink(
+                "Hi RESTFit, I have a question about the pricing before I sign up."
+              )}
+              target="_blank"
+              rel="noreferrer"
+              className="text-lime underline-offset-2 hover:underline"
+            >
+              Chat with us on WhatsApp
+            </a>
+          </p>
 
           <p className="mt-4 text-center text-xs text-white/40">
             Most gyms recover the cost with 2 retained members per month.

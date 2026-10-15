@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import type { ReminderKind } from "@prisma/client";
 import { db } from "../lib/db.js";
+import { purgeExpiredRateLimits } from "../lib/rateLimit.js";
 import { formatDate } from "../services/memberships.js";
 import { sendMessage } from "../services/notify.js";
 import { daysBetween, expireLapsedSubscriptions } from "../services/subscriptions.js";
@@ -64,4 +65,5 @@ export function startJobs() {
   const tz = { timezone: "Africa/Lagos" };
   cron.schedule("5 * * * *", () => void expireLapsedSubscriptions().catch(console.error), tz);
   cron.schedule("0 9 * * *", () => void sendRenewalReminders().catch(console.error), tz);
+  cron.schedule("15 * * * *", () => void purgeExpiredRateLimits().catch(console.error), tz);
 }

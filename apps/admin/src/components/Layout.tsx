@@ -9,10 +9,13 @@ import {
   ScanLine,
   Tags,
   Users,
+  Wallet,
 } from "lucide-react";
 import { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/auth";
+import { BillingProvider, useBilling } from "../lib/billing";
+import { TrialBanner } from "../pages/TrialBanner";
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -21,10 +24,40 @@ const nav = [
   { to: "/members", label: "Members", icon: Users },
   { to: "/payments", label: "Payments", icon: CreditCard },
   { to: "/plans", label: "Plans", icon: Tags },
+  { to: "/billing", label: "Billing", icon: Wallet },
 ];
 
+// What still works while the gym's RestFit billing is paused: the front desk,
+// so members can always check in and renew.
+const FRONT_DESK_PATHS = ["/check-in", "/members", "/billing"];
+const allowedWhenLocked = (path: string) => FRONT_DESK_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+
 export function Layout() {
+  return (
+    <BillingProvider>
+      <Shell />
+    </BillingProvider>
+  );
+}
+
+// Once the trial/subscription has lapsed past its grace period, only Billing works.
+function PageArea() {
+  const { billing } = useBilling();
+  const { pathname } = useLocation();
+  if (billing?.state === "LOCKED" && !allowedWhenLocked(pathname)) {
+    return <Navigate to="/check-in" replace />;
+  }
+  return (
+    <>
+      <TrialBanner />
+      <Outlet />
+    </>
+  );
+}
+
+function Shell() {
   const { staff, logout } = useAuth();
+  const { billing } = useBilling();
   const [open, setOpen] = useState(false);
 
   const sidebar = (
@@ -39,7 +72,7 @@ export function Layout() {
         </div>
       </div>
       <nav className="flex-1 space-y-1 px-3">
-        {nav.map(({ to, label, icon: Icon, end }) => (
+        {nav.filter(({ to }) => billing?.state !== "LOCKED" || allowedWhenLocked(to)).map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
@@ -101,7 +134,7 @@ export function Layout() {
       )}
 
       <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-8">
-        <Outlet />
+        <PageArea />
       </main>
     </div>
   );
