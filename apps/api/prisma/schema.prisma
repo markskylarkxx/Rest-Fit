@@ -109,6 +109,7 @@ model Staff {
   createdAt    DateTime  @default(now())
   isPlatformAdmin Boolean   @default(false)
 
+
   inviteToken   String?   @unique
   inviteSentAt  DateTime?
   

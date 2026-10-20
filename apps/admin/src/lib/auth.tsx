@@ -6,7 +6,7 @@ import type { Staff } from "./types";
 interface AuthState {
   staff: Staff | null;
   loading: boolean;
-  login: (input: LoginInput) => Promise<void>; // <-- Simplified
+  login: (input: LoginInput) => Promise<void>;
   completeSetup: (input: { token: string; password: string }) => Promise<void>;
   logout: () => void;
 }
@@ -19,8 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!tokenStore.get()) return;
-    api
-      .get<Staff>("/auth/me")
+    api.get<Staff>("/auth/me")
       .then((r) => {
         if (r.data.isPlatformAdmin) {
           tokenStore.clear();
@@ -33,12 +32,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const signIn = useCallback((data: { token: string; staff: Staff }) => {
-    if (data.staff.isPlatformAdmin) {
-      throw new Error("Platform admins must use the platform admin dashboard (admin.myrestfit.com).");
+  const signIn = useCallback((data: any) => {
+    if (data.staff?.isPlatformAdmin) {
+      throw new Error("Platform admins must use the platform admin dashboard.");
     }
-    tokenStore.set(data.token);
-    setStaff(data.staff);
+    if (data.token) tokenStore.set(data.token);
+    if (data.staff) setStaff(data.staff);
   }, []);
 
   const value: AuthState = {
@@ -46,20 +45,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     login: async (input) => {
       const { data } = await api.post("/auth/login", input);
-      
-      // If the API demands MFA, it's a platform admin. Throw an error so the UI catches it.
       if (data.mfaRequired) {
         throw new Error("Platform admins must use the platform admin dashboard.");
       }
-      
       signIn(data);
     },
     completeSetup: async (input) => {
-      const { data } = await api.post("/auth/setup", input);
-      if (data.signInRequired) {
-        throw new Error("Your account requires a standard sign-in. Please log in.");
+      try {
+        const { data } = await api.post("/auth/setup", input);
+        if (data.signInRequired) {
+          throw new Error("Your account requires a standard sign-in. Please log in.");
+        }
+        signIn(data);
+      } catch (err: any) {
+        // If the API returned an error status, extract the message
+        const message = err.response?.data?.error || err.message || "Setup failed";
+        throw new Error(message);
       }
-      signIn(data);
     },
     logout: () => {
       tokenStore.clear();
