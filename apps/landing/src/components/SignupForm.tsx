@@ -14,13 +14,11 @@ export function SignupForm() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
-  // Honeypot: hidden from people, bots fill it in.
   const [website, setWebsite] = useState("");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState<string | null>(null);
 
-  const apiBase =
-    import.meta.env.VITE_API_URL ?? "http://localhost:4000/api";
+  const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:4000/api";
 
   const startSignup = async (e: FormEvent) => {
     e.preventDefault();
@@ -79,13 +77,13 @@ export function SignupForm() {
   return (
     <section
       id="signup"
-      className="border-t border-white/[0.06] px-6 py-20 sm:py-28"
+      className="border-t border-white/[0.06] px-4 py-16 sm:px-6 sm:py-28"
     >
       <div className="mx-auto max-w-3xl">
         <div className="text-center">
           <p className="eyebrow">Get started free</p>
-          <h2 className="h2 mt-4">Apply for your 30-day free trial.</h2>
-          <p className="body-lg mx-auto mt-4 max-w-xl">
+          <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">Apply for your 30-day free trial.</h2>
+          <p className="mx-auto mt-4 max-w-xl text-base text-white/60 sm:text-lg">
             Tell us about your gym. We'll WhatsApp you within 24 hours to
             verify it, then send you a link to set up your dashboard. Your
             free trial starts the day you're approved.
@@ -93,7 +91,7 @@ export function SignupForm() {
         </div>
 
         {step === "success" && (
-          <div className="mt-12 rounded-card border border-lime/30 bg-lime/[0.06] p-10 text-center">
+          <div className="mt-12 rounded-2xl border border-lime/30 bg-lime/[0.06] p-6 text-center sm:rounded-card sm:p-10">
             <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-lime text-canvas">
               <Check size={24} strokeWidth={3} />
             </div>
@@ -109,9 +107,9 @@ export function SignupForm() {
         {step === "form" && (
           <form
             onSubmit={startSignup}
-            className="mt-12 rounded-card border border-white/[0.08] bg-surface/40 p-8 sm:p-10"
+            className="mt-12 rounded-2xl border border-white/[0.08] bg-surface/40 p-6 sm:rounded-card sm:p-10"
           >
-            <div className="mb-6 flex items-center gap-2 rounded-button bg-lime/[0.06] px-4 py-3">
+            <div className="mb-6 flex flex-col items-center gap-2 rounded-button bg-lime/[0.06] px-4 py-3 text-center sm:flex-row sm:text-left">
               <Sparkles size={16} className="shrink-0 text-lime" />
               <p className="text-xs text-lime">
                 30 days free · No card required · Cancel anytime
@@ -214,7 +212,7 @@ export function SignupForm() {
         {step === "verify" && (
           <form
             onSubmit={verify}
-            className="mt-12 rounded-card border border-white/[0.08] bg-surface/40 p-8 sm:p-10"
+            className="mt-12 rounded-2xl border border-white/[0.08] bg-surface/40 p-6 sm:rounded-card sm:p-10"
           >
             <h3 className="text-lg font-bold">Check your WhatsApp</h3>
             <p className="mt-2 text-sm text-white/60">

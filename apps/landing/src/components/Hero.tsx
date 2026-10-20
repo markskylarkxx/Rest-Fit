@@ -3,15 +3,16 @@ import { whatsappLink } from "../lib/whatsapp";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden px-6 pt-32 pb-20 sm:pt-40 sm:pb-28">
-      <div className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-lime/[0.08] blur-[120px]" />
+    <section className="relative overflow-hidden px-4 pt-28 pb-16 sm:px-6 sm:pt-40 sm:pb-28">
+      <div className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-full max-w-[800px] -translate-x-1/2 rounded-full bg-lime/[0.08] blur-[120px]" />
 
       <div className="relative mx-auto max-w-6xl">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          <div>
+          <div className="text-center lg:text-left">
             <p className="eyebrow">Gym management for Nigeria</p>
 
-            <h1 className="h1 mt-4">
+            {/* Added tracking-tight and adjusted sizes for mobile */}
+            <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
               Your members are leaving.
               <br />
               <span className="text-lime">
@@ -19,14 +20,15 @@ export function Hero() {
               </span>
             </h1>
 
-            <p className="body-lg mt-6 max-w-xl">
+            <p className="mt-6 max-w-xl text-base sm:text-lg text-white/60 mx-auto lg:mx-0">
               The gym platform that shows you who's about to quit, automates
               WhatsApp reminders, and gives your members a fitness app they'll
               actually open.
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <a href="#signup" className="btn-primary">
+            {/* Centered buttons on mobile */}
+            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
+              <a href="#signup" className="btn-primary w-full justify-center sm:w-auto">
                 Sign up your gym
                 <ArrowRight size={16} />
               </a>
@@ -34,14 +36,14 @@ export function Hero() {
                 href={whatsappLink()}
                 target="_blank"
                 rel="noreferrer"
-                className="btn-secondary"
+                className="btn-secondary w-full justify-center sm:w-auto"
               >
                 <MessageCircle size={16} />
                 I'm interested
               </a>
             </div>
 
-            <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-sm text-white/50">
+            <ul className="mt-10 flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-white/50 lg:justify-start">
               <li className="inline-flex items-center gap-2">
                 <Check size={14} className="text-lime" />
                 Built in Lagos
@@ -61,8 +63,9 @@ export function Hero() {
             </ul>
           </div>
 
-          <div className="relative">
-            <div className="relative rounded-2xl border border-white/[0.08] bg-surface p-5 shadow-2xl shadow-black/50">
+          {/* Dashboard Mockup */}
+          <div className="relative mt-12 lg:mt-0 w-full max-w-lg mx-auto lg:max-w-none">
+            <div className="relative rounded-2xl border border-white/[0.08] bg-surface p-4 sm:p-5 shadow-2xl shadow-black/50">
               <div className="mb-4 flex items-center gap-1.5">
                 <div className="h-3 w-3 rounded-full bg-white/10" />
                 <div className="h-3 w-3 rounded-full bg-white/10" />
@@ -80,7 +83,7 @@ export function Hero() {
                     </p>
                     <p className="mt-1 text-2xl font-extrabold">371</p>
                   </div>
-                  <div>
+                  <div className="text-right">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
                       Revenue this month
                     </p>

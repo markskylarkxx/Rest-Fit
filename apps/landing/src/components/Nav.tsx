@@ -29,7 +29,8 @@ export function Nav() {
           : "bg-transparent")
       }
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      {/* Changed px-6 to px-4 for mobile breathing room */}
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
         <a href="#" className="flex items-center gap-2.5">
           <div className="grid h-8 w-8 place-items-center rounded-lg bg-lime">
             <span className="text-base font-extrabold leading-none text-canvas">
@@ -77,7 +78,7 @@ export function Nav() {
 
       {open && (
         <div className="border-t border-white/[0.06] bg-canvas/95 backdrop-blur-xl md:hidden">
-          <div className="flex flex-col gap-2 px-6 py-4">
+          <div className="flex flex-col gap-2 px-4 py-4 sm:px-6">
             {LINKS.map((l) => (
               <a
                 key={l.href}
@@ -101,7 +102,7 @@ export function Nav() {
             <a
               href="#signup"
               onClick={() => setOpen(false)}
-              className="btn-primary"
+              className="btn-primary justify-center"
             >
               Sign up your gym
             </a>
