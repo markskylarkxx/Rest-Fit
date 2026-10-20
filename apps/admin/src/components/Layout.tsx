@@ -24,7 +24,7 @@ const nav = [
   { to: "/at-risk", label: "At-risk", icon: AlertTriangle },
   { to: "/check-in", label: "Check-in", icon: ScanLine },
   { to: "/members", label: "Members", icon: Users },
-  { to: "/staff", label: "Staff", icon: UserPlus },
+  { to: "/staff", label: "Staff", icon: UserPlus, requiresManager: true }, // Added flag
   { to: "/payments", label: "Payments", icon: CreditCard },
   { to: "/plans", label: "Plans", icon: Tags },
   { to: "/billing", label: "Billing", icon: Wallet },
@@ -60,6 +60,9 @@ function Shell() {
   const { billing } = useBilling();
   const [open, setOpen] = useState(false);
 
+  // Check if the user has permission to see manager-only links
+  const isManager = staff?.role === "OWNER" || staff?.role === "ADMIN";
+
   const sidebar = (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 px-5 py-5">
@@ -72,42 +75,50 @@ function Shell() {
         </div>
       </div>
       <nav className="flex-1 space-y-1 px-3 overflow-y-auto pb-4">
-        {nav.filter(({ to }) => billing?.state !== "LOCKED" || allowedWhenLocked(to)).map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            onClick={() => setOpen(false)}
-            className={({ isActive }: { isActive: boolean }) =>
-              clsx(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
-                isActive
-                  ? "bg-brand-50 text-brand-700"
-                  : "text-slate-600 hover:bg-slate-100",
-              )
-            }
-          >
-            <Icon size={18} />
-            {label}
-          </NavLink>
-        ))}
+        {nav
+          .filter(({ to }) => billing?.state !== "LOCKED" || allowedWhenLocked(to))
+          .filter((item) => !item.requiresManager || isManager)
+          .map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              onClick={() => setOpen(false)}
+              className={({ isActive }: { isActive: boolean }) =>
+                clsx(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
+                  isActive
+                    ? "bg-brand-50 text-brand-700"
+                    : "text-slate-600 hover:bg-slate-100",
+                )
+              }
+            >
+              <Icon size={18} />
+              {label}
+            </NavLink>
+          ))}
       </nav>
       <div className="border-t border-slate-200 p-4">
         <p className="truncate text-sm font-medium">{staff?.name}</p>
         <p className="text-xs capitalize text-slate-500 mb-3">
           {staff?.role.toLowerCase().replace("_", " ")}
         </p>
-        <NavLink
-          to="/settings"
-          className={({ isActive }: { isActive: boolean }) =>
-            clsx(
-              "flex items-center gap-2 text-sm transition",
-              isActive ? "text-brand-700 font-medium" : "text-slate-500 hover:text-slate-800"
-            )
-          }
-        >
-          <Settings size={16} /> Settings
-        </NavLink>
+        
+        {/* Only show Settings to Managers */}
+        {isManager && (
+          <NavLink
+            to="/settings"
+            className={({ isActive }: { isActive: boolean }) =>
+              clsx(
+                "flex items-center gap-2 text-sm transition mb-2",
+                isActive ? "text-brand-700 font-medium" : "text-slate-500 hover:text-slate-800"
+              )
+            }
+          >
+            <Settings size={16} /> Settings
+          </NavLink>
+        )}
+        
         <button
           onClick={logout}
           className="mt-2 flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800"
