@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { loginSchema, type LoginInput } from "@restfit/shared";
 import { Field, Input } from "../components/ui";
-import { api, errorMessage } from "../lib/api";
+import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
 const LANDING_SIGNUP_URL = `${import.meta.env.VITE_LANDING_URL ?? "https://myrestfit.com"}/#signup`;
@@ -32,18 +32,19 @@ export function AuthShell({ title, subtitle, children, footer }: { title: string
 
 export function LoginPage() {
   const { login } = useAuth();
-  const [needsCode, setNeedsCode] = useState(false);
   const { register, handleSubmit, formState } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+  const [loginError, setLoginError] = useState<string | null>(null);
 
-  const onSubmit = handleSubmit(async (values) => {
+  const onSubmit = async (values: LoginInput) => {
+    setLoginError(null);
     try {
-      if ((await login(values)) === "mfa") setNeedsCode(true);
-    } catch (err) {
-      toast.error(errorMessage(err));
+      await login(values);
+    } catch (err: any) {
+      const message = err.message || err.response?.data?.error || "Login failed";
+      setLoginError(message);
+      toast.error(message);
     }
-  });
-
-  if (needsCode) return <MfaCodeStep onRestart={() => setNeedsCode(false)} />;
+  };
 
   return (
     <AuthShell
@@ -58,7 +59,12 @@ export function LoginPage() {
         </>
       }
     >
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {loginError && (
+          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+            {loginError}
+          </div>
+        )}
         <Field label="Email" error={formState.errors.email?.message}>
           <Input type="email" autoComplete="email" autoFocus {...register("email")} />
         </Field>
@@ -78,47 +84,6 @@ export function LoginPage() {
   );
 }
 
-// Second sign-in step for accounts with two-step login (platform admins).
-function MfaCodeStep({ onRestart }: { onRestart: () => void }) {
-  const { verifyMfa } = useAuth();
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      await verifyMfa(code);
-    } catch (err) {
-      toast.error(errorMessage(err));
-      setCode("");
-      if ((err as { response?: { status?: number } }).response?.status === 401) onRestart();
-      setBusy(false);
-    }
-  };
-
-  return (
-    <AuthShell
-      title="Two-step login"
-      subtitle="Enter the 6-digit code from your authenticator app, or a recovery code."
-      footer={
-        <button type="button" onClick={onRestart} className="font-medium text-brand-700">
-          Start again
-        </button>
-      }
-    >
-      <form onSubmit={onSubmit} className="space-y-4">
-        <Field label="Code">
-          <Input autoFocus autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} />
-        </Field>
-        <button className="btn-primary w-full" disabled={busy || code.trim().length < 6}>
-          {busy ? "Checking…" : "Verify"}
-        </button>
-      </form>
-    </AuthShell>
-  );
-}
-
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -130,8 +95,9 @@ export function ForgotPasswordPage() {
     try {
       await api.post("/auth/forgot-password", { email });
       setSent(true);
-    } catch (err) {
-      toast.error(errorMessage(err));
+    } catch (err: any) {
+      const message = err.message || err.response?.data?.error || "Something went wrong";
+      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -157,7 +123,7 @@ export function ForgotPasswordPage() {
           <Field label="Email">
             <Input type="email" autoComplete="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} required />
           </Field>
-          <button className="btn-primary w-full" disabled={busy}>
+          <button type="submit" disabled={busy} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50 w-full">
             {busy ? "Sending…" : "Send reset link"}
           </button>
         </form>

@@ -12,6 +12,7 @@ export interface Staff {
   email: string;
   role: StaffRole;
   gym: Gym;
+  isPlatformAdmin: boolean; 
 }
 
 export interface Plan {

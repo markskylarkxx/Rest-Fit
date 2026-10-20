@@ -6,11 +6,8 @@ import type { Staff } from "./types";
 interface AuthState {
   staff: Staff | null;
   loading: boolean;
-  // Resolves to "mfa" when the account needs a code from its authenticator app.
-  login: (input: LoginInput) => Promise<"mfa" | "done">;
-  verifyMfa: (code: string) => Promise<void>;
-  // "sign-in" when the account has two-step login and must sign in normally.
-  completeSetup: (input: { token: string; password: string }) => Promise<"done" | "sign-in">;
+  login: (input: LoginInput) => Promise<void>; // <-- Simplified
+  completeSetup: (input: { token: string; password: string }) => Promise<void>;
   logout: () => void;
 }
 
@@ -19,18 +16,27 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [staff, setStaff] = useState<Staff | null>(null);
   const [loading, setLoading] = useState(Boolean(tokenStore.get()));
-  const [mfaToken, setMfaToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (!tokenStore.get()) return;
     api
       .get<Staff>("/auth/me")
-      .then((r) => setStaff(r.data))
+      .then((r) => {
+        if (r.data.isPlatformAdmin) {
+          tokenStore.clear();
+          setStaff(null);
+        } else {
+          setStaff(r.data);
+        }
+      })
       .catch(() => tokenStore.clear())
       .finally(() => setLoading(false));
   }, []);
 
   const signIn = useCallback((data: { token: string; staff: Staff }) => {
+    if (data.staff.isPlatformAdmin) {
+      throw new Error("Platform admins must use the platform admin dashboard (admin.myrestfit.com).");
+    }
     tokenStore.set(data.token);
     setStaff(data.staff);
   }, []);
@@ -40,22 +46,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     login: async (input) => {
       const { data } = await api.post("/auth/login", input);
+      
+      // If the API demands MFA, it's a platform admin. Throw an error so the UI catches it.
       if (data.mfaRequired) {
-        setMfaToken(data.mfaToken);
-        return "mfa";
+        throw new Error("Platform admins must use the platform admin dashboard.");
       }
+      
       signIn(data);
-      return "done";
-    },
-    verifyMfa: async (code) => {
-      signIn((await api.post("/auth/mfa/verify", { mfaToken, code })).data);
-      setMfaToken(null);
     },
     completeSetup: async (input) => {
       const { data } = await api.post("/auth/setup", input);
-      if (data.signInRequired) return "sign-in";
+      if (data.signInRequired) {
+        throw new Error("Your account requires a standard sign-in. Please log in.");
+      }
       signIn(data);
-      return "done";
     },
     logout: () => {
       tokenStore.clear();
@@ -64,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+};
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);

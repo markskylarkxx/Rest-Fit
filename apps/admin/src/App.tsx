@@ -16,6 +16,8 @@ import { MembersPage } from "./pages/MembersPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
 import { PayReturnPage } from "./pages/PayReturnPage";
 import { PlansPage } from "./pages/PlansPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { StaffPage } from "./pages/StaffPage";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { staff, loading } = useAuth();
@@ -66,6 +68,10 @@ export function App() {
         <Route path="plans" element={<PlansPage />} />
         <Route path="billing" element={<BillingPage />} />
         <Route path="billing/return" element={<BillingReturnPage />} />
+        
+        {/* Phase 7.5 routes */}
+        <Route path="staff" element={<StaffPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

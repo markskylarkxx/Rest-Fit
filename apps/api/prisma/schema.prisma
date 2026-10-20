@@ -108,6 +108,10 @@ model Staff {
   active       Boolean   @default(true)
   createdAt    DateTime  @default(now())
   isPlatformAdmin Boolean   @default(false)
+
+  inviteToken   String?   @unique
+  inviteSentAt  DateTime?
+  
   payments     Payment[]
   checkIns     CheckIn[]
   setupTokens  PasswordSetupToken[]

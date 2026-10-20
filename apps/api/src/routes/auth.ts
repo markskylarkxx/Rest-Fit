@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { Router } from "express";
 import { z } from "zod";
@@ -13,7 +14,6 @@ export const authRouter = Router();
 
 const publicStaff = { id: true, name: true, email: true, role: true, gymId: true } as const;
 
-// What the dashboards get about the signed-in staff member.
 async function sessionStaff(staffId: string, mfaVerified: boolean) {
   const { totpEnabledAt, ...staff } = await db.staff.findUniqueOrThrow({
     where: { id: staffId },
@@ -43,17 +43,14 @@ authRouter.post("/login", authLimit, async (req, res) => {
   res.json({ token: signToken({ staffId: staff.id, gymId: staff.gymId, role: staff.role }), staff: await sessionStaff(staff.id, false) });
 });
 
-// ── Forgot password ──────────────────────────────────
 const forgotLimit = rateLimit({ name: "staff-forgot", windowMs: 60 * 60 * 1000, max: 5 });
 
 authRouter.post("/forgot-password", forgotLimit, async (req, res) => {
   const { email } = z.object({ email: z.string().trim().toLowerCase().email() }).parse(req.body);
   await sendPasswordReset(email);
-  // Same answer whether or not the account exists.
   res.json({ ok: true });
 });
 
-// ── Two-step login ───────────────────────────────────
 const mfaVerifySchema = z.object({ mfaToken: z.string().min(1), code: z.string().trim().min(6).max(20) });
 
 authRouter.post("/mfa/verify", authLimit, async (req, res) => {
@@ -69,7 +66,6 @@ authRouter.post("/mfa/verify", authLimit, async (req, res) => {
   });
 });
 
-// Enrollment is for platform admins, who can't use the platform without it.
 async function requireEnrollingAdmin(staffId: string) {
   const staff = await db.staff.findUniqueOrThrow({ where: { id: staffId } });
   if (!staff.isPlatformAdmin) throw new HttpError(403, "Not allowed");
@@ -92,7 +88,6 @@ authRouter.post("/mfa/enable", requireAuth, authLimit, async (req, res) => {
   });
 });
 
-// ── Password setup for newly approved owners ─────────
 const setupSchema = z.object({ token: z.string().min(20).max(200), password: z.string().min(8).max(100) });
 
 authRouter.get("/setup/:token", authLimit, async (req, res) => {
@@ -104,7 +99,6 @@ authRouter.post("/setup", authLimit, async (req, res) => {
   const input = setupSchema.parse(req.body);
   const staff = await completeSetup(input.token, input.password);
   assertGymApproved(staff);
-  // A reset link alone must not skip two-step login.
   if (staff.totpEnabledAt) {
     res.json({ signInRequired: true });
     return;
@@ -116,18 +110,45 @@ authRouter.get("/me", requireAuth, async (req, res) => {
   res.json(await sessionStaff(auth(req).staffId, Boolean(auth(req).mfa)));
 });
 
+// ── Staff Management ─────────────────────────────────
 export const staffRouter = Router();
 staffRouter.use(requireAuth, requireActiveBilling);
 
 staffRouter.get("/", async (req, res) => {
-  res.json(await db.staff.findMany({ where: { gymId: auth(req).gymId }, select: { ...publicStaff, active: true }, orderBy: { createdAt: "asc" } }));
+  res.json(await db.staff.findMany({ 
+    where: { gymId: auth(req).gymId }, 
+    select: { ...publicStaff, active: true }, 
+    orderBy: { createdAt: "asc" } 
+  }));
 });
 
 staffRouter.post("/", requireRole("OWNER", "ADMIN"), async (req, res) => {
-  const { password, ...input } = createStaffSchema.parse(req.body);
+  const { name, email, role } = z.object({
+    name: z.string().min(2),
+    email: z.string().email(),
+    role: z.enum(["ADMIN", "FRONT_DESK", "TRAINER"]),
+  }).parse(req.body);
+
+  const gymId = auth(req).gymId;
+  const existing = await db.staff.findUnique({ where: { email } });
+  if (existing) throw new HttpError(400, "Email already in use");
+
+  const inviteToken = crypto.randomBytes(24).toString("base64url");
+  
   const staff = await db.staff.create({
-    data: { ...input, passwordHash: await bcrypt.hash(password, 10), gymId: auth(req).gymId },
-    select: publicStaff,
+    data: {
+      gymId,
+      name,
+      email,
+      role,
+      passwordHash: "PENDING_INVITE", 
+      inviteToken,
+      inviteSentAt: new Date(),
+    },
   });
-  res.status(201).json(staff);
+
+  const inviteUrl = `${process.env.ADMIN_URL ?? "http://localhost:5173"}/setup-password?token=${inviteToken}`;
+  console.log(`\n[STAFF INVITE] ${name} (${role}): ${inviteUrl}\n`);
+  
+  res.status(201).json({ id: staff.id, name: staff.name, email: staff.email, role: staff.role });
 });

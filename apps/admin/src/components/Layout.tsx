@@ -7,7 +7,9 @@ import {
   LogOut,
   Menu,
   ScanLine,
+  Settings,
   Tags,
+  UserPlus,
   Users,
   Wallet,
 } from "lucide-react";
@@ -22,13 +24,12 @@ const nav = [
   { to: "/at-risk", label: "At-risk", icon: AlertTriangle },
   { to: "/check-in", label: "Check-in", icon: ScanLine },
   { to: "/members", label: "Members", icon: Users },
+  { to: "/staff", label: "Staff", icon: UserPlus },
   { to: "/payments", label: "Payments", icon: CreditCard },
   { to: "/plans", label: "Plans", icon: Tags },
   { to: "/billing", label: "Billing", icon: Wallet },
 ];
 
-// What still works while the gym's RestFit billing is paused: the front desk,
-// so members can always check in and renew.
 const FRONT_DESK_PATHS = ["/check-in", "/members", "/billing"];
 const allowedWhenLocked = (path: string) => FRONT_DESK_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
@@ -40,7 +41,6 @@ export function Layout() {
   );
 }
 
-// Once the trial/subscription has lapsed past its grace period, only Billing works.
 function PageArea() {
   const { billing } = useBilling();
   const { pathname } = useLocation();
@@ -71,7 +71,7 @@ function Shell() {
           <p className="text-xs text-slate-500">RestFit</p>
         </div>
       </div>
-      <nav className="flex-1 space-y-1 px-3">
+      <nav className="flex-1 space-y-1 px-3 overflow-y-auto pb-4">
         {nav.filter(({ to }) => billing?.state !== "LOCKED" || allowedWhenLocked(to)).map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
@@ -94,12 +94,23 @@ function Shell() {
       </nav>
       <div className="border-t border-slate-200 p-4">
         <p className="truncate text-sm font-medium">{staff?.name}</p>
-        <p className="text-xs capitalize text-slate-500">
+        <p className="text-xs capitalize text-slate-500 mb-3">
           {staff?.role.toLowerCase().replace("_", " ")}
         </p>
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            clsx(
+              "flex items-center gap-2 text-sm transition",
+              isActive ? "text-brand-700 font-medium" : "text-slate-500 hover:text-slate-800"
+            )
+          }
+        >
+          <Settings size={16} /> Settings
+        </NavLink>
         <button
           onClick={logout}
-          className="mt-3 flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800"
+          className="mt-2 flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800"
         >
           <LogOut size={16} /> Sign out
         </button>
@@ -120,14 +131,8 @@ function Shell() {
         </button>
       </header>
       {open && (
-        <div
-          className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden"
-          onClick={() => setOpen(false)}
-        >
-          <aside
-            className="h-full w-64 bg-white"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden" onClick={() => setOpen(false)}>
+          <aside className="h-full w-64 bg-white" onClick={(e) => e.stopPropagation()}>
             {sidebar}
           </aside>
         </div>
