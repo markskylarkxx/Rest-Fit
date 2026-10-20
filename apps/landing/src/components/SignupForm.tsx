@@ -8,6 +8,7 @@ export function SignupForm() {
   const [step, setStep] = useState<Step>("form");
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   const [gymName, setGymName] = useState("");
   const [ownerName, setOwnerName] = useState("");
@@ -20,8 +21,8 @@ export function SignupForm() {
 
   const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:4000/api";
 
-  const startSignup = async (e: FormEvent) => {
-    e.preventDefault();
+  const requestCode = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
     setState("submitting");
     setError(null);
     try {
@@ -38,10 +39,17 @@ export function SignupForm() {
       if (data.devCode) setDevCode(data.devCode);
       setStep("verify");
       setState("idle");
+      setCode(""); // Clear old code on resend
     } catch (err) {
       setState("error");
       setError(err instanceof Error ? err.message : "Something went wrong");
     }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    await requestCode();
+    setResending(false);
   };
 
   const verify = async (e: FormEvent) => {
@@ -106,7 +114,7 @@ export function SignupForm() {
 
         {step === "form" && (
           <form
-            onSubmit={startSignup}
+            onSubmit={requestCode}
             className="mt-12 rounded-2xl border border-white/[0.08] bg-surface/40 p-6 sm:rounded-card sm:p-10"
           >
             <div className="mb-6 flex flex-col items-center gap-2 rounded-button bg-lime/[0.06] px-4 py-3 text-center sm:flex-row sm:text-left">
@@ -241,9 +249,17 @@ export function SignupForm() {
             </div>
 
             {error && (
-              <p className="mt-6 rounded-button bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                {error}
-              </p>
+              <div className="mt-6 rounded-button bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                <p>{error}</p>
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="mt-2 font-semibold text-red-100 underline hover:text-white disabled:opacity-50"
+                >
+                  {resending ? "Requesting new code..." : "Request a new code"}
+                </button>
+              </div>
             )}
 
             <button
@@ -258,7 +274,10 @@ export function SignupForm() {
 
             <button
               type="button"
-              onClick={() => setStep("form")}
+              onClick={() => {
+                setStep("form");
+                setError(null);
+              }}
               className="mt-4 w-full text-center text-xs text-white/40 hover:text-white/60"
             >
               ← Change details
