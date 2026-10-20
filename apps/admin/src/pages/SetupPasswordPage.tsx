@@ -45,11 +45,10 @@ export function SetupPasswordPage() {
     setFormError(null);
     setSubmitting(true);
     try {
-      const result = await completeSetup({ token, password });
-      if (result === "sign-in") {
-        toast.success("Password changed. Sign in with your new password.");
-        navigate("/login", { replace: true });
-      } else if (info?.purpose === "RESET") {
+      await completeSetup({ token, password });
+      
+      // If we get here without an error, they are signed in automatically.
+      if (info?.purpose === "RESET") {
         toast.success("Password changed.");
         navigate("/", { replace: true });
       } else {

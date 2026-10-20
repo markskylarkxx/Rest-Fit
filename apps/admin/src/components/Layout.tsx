@@ -78,7 +78,7 @@ function Shell() {
             to={to}
             end={end}
             onClick={() => setOpen(false)}
-            className={({ isActive }) =>
+            className={({ isActive }: { isActive: boolean }) =>
               clsx(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
                 isActive
@@ -99,7 +99,7 @@ function Shell() {
         </p>
         <NavLink
           to="/settings"
-          className={({ isActive }) =>
+          className={({ isActive }: { isActive: boolean }) =>
             clsx(
               "flex items-center gap-2 text-sm transition",
               isActive ? "text-brand-700 font-medium" : "text-slate-500 hover:text-slate-800"
