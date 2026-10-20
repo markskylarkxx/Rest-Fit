@@ -173,6 +173,7 @@ export async function completeSetup(token: string, password: string) {
   }
 
   // Update the staff member's password
+  // NOTE: We removed `inviteUsedAt` because it doesn't exist in the Prisma schema.
   const updatedStaff = await db.staff.update({
     where: { id: row.staff.id },
     data: {
@@ -180,7 +181,7 @@ export async function completeSetup(token: string, password: string) {
       // Signs out every existing session (whole seconds, matching JWT iat).
       sessionsValidAfter: new Date(Math.floor(Date.now() / 1000) * 1000),
       // If it was a staff invite, burn the token
-      ...(row.id === "staff-invite" ? { inviteToken: null, inviteUsedAt: new Date() } : {})
+      ...(row.id === "staff-invite" ? { inviteToken: null } : {})
     },
     include: { gym: true }
   });
