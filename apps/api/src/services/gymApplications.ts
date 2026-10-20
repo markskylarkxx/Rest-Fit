@@ -125,33 +125,65 @@ export async function resendSetupLink(applicationId: string) {
   return { setupUrl };
 }
 
-// Looks up an unused, unexpired setup link.
+// ── UPDATED LOOKUPS FOR BOTH OWNERS AND STAFF ──────────
+
+// Looks up an unused, unexpired setup link (either owner or staff).
 export async function findSetupToken(token: string) {
+  // 1. Check PasswordSetupToken (Gym Owners)
   const row = await db.passwordSetupToken.findUnique({
     where: { tokenHash: hashToken(token) },
     include: { staff: { include: { gym: true } } },
   });
-  if (!row || row.usedAt || row.expiresAt < new Date()) {
-    throw new HttpError(400, "This link has expired or was already used. Request a new one");
+
+  if (row) {
+    if (row.usedAt || row.expiresAt < new Date()) {
+      throw new HttpError(400, "This link has expired or was already used. Request a new one");
+    }
+    return row;
   }
-  return row;
+
+  // 2. Check Staff.inviteToken (Front Desk / Trainers)
+  const staff = await db.staff.findUnique({
+    where: { inviteToken: token },
+    include: { gym: true },
+  });
+
+  if (staff) {
+    return { 
+      staff, 
+      purpose: "SETUP" as const, 
+      tokenHash: token, 
+      id: "staff-invite" // Dummy ID to satisfy the return type
+    };
+  }
+
+  throw new HttpError(400, "This link has expired or was already used. Request a new one");
 }
 
 export async function completeSetup(token: string, password: string) {
   const row = await findSetupToken(token);
-  // Consuming is conditional so the same link can't be used twice at once.
-  const { count } = await db.passwordSetupToken.updateMany({
-    where: { id: row.id, usedAt: null },
-    data: { usedAt: new Date() },
-  });
-  if (!count) throw new HttpError(400, "This link was already used");
-  await db.staff.update({
-    where: { id: row.staffId },
+
+  // If it's a gym owner setup token
+  if (row.id !== "staff-invite") {
+    const { count } = await db.passwordSetupToken.updateMany({
+      where: { id: row.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    if (!count) throw new HttpError(400, "This link was already used");
+  }
+
+  // Update the staff member's password
+  const updatedStaff = await db.staff.update({
+    where: { id: row.staff.id },
     data: {
       passwordHash: await bcrypt.hash(password, 10),
       // Signs out every existing session (whole seconds, matching JWT iat).
       sessionsValidAfter: new Date(Math.floor(Date.now() / 1000) * 1000),
+      // If it was a staff invite, burn the token
+      ...(row.id === "staff-invite" ? { inviteToken: null, inviteUsedAt: new Date() } : {})
     },
+    include: { gym: true }
   });
-  return row.staff;
+
+  return updatedStaff;
 }
