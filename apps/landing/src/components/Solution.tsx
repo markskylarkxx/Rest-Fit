@@ -88,9 +88,9 @@ const MEMBER_FEATURES = [
 
 export function Solution() {
   return (
-    <section id="solution" className="border-t border-white/[0.06] px-6 py-20 sm:py-28">
+    <section id="solution" className="border-t border-white/[0.06] px-4 py-16 sm:px-6 sm:py-28">
       <div className="mx-auto max-w-6xl">
-        <div className="max-w-2xl">
+        <div className="max-w-2xl text-center sm:text-left mx-auto sm:mx-0">
           <p className="eyebrow">The solution</p>
           <h2 className="h2 mt-4">One platform. Two apps.</h2>
           <p className="body-lg mt-4">
@@ -100,8 +100,7 @@ export function Solution() {
         </div>
 
         <div className="mt-14 grid gap-8 lg:grid-cols-2">
-          {/* For the gym */}
-          <div className="rounded-card border border-white/[0.08] bg-surface/50 p-8">
+          <div className="rounded-card border border-white/[0.08] bg-surface/50 p-6 sm:p-8">
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-lime text-canvas">
                 <span className="text-sm font-extrabold">G</span>
@@ -131,8 +130,7 @@ export function Solution() {
             </div>
           </div>
 
-          {/* For members */}
-          <div className="rounded-card border border-white/[0.08] bg-surface/50 p-8">
+          <div className="rounded-card border border-white/[0.08] bg-surface/50 p-6 sm:p-8">
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/[0.06]">
                 <span className="text-sm font-extrabold text-lime">M</span>

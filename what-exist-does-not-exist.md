@@ -133,3 +133,48 @@ Phase 5 — Waitlist management
 Phase 6 — Analytics dashboard
 Phase 7 — Communication log
 Phase 8 — Platform team + impersonate + audit log
+
+
+
+
+*****************
+
+1. The Android APK (Critical)
+
+Right now, your member app only exists as code. You need to build the Android APK and test it on your phone against the production API.
+
+Update apps/member/.env to point to https://rest-fit-1.onrender.com/api.
+Run npm run build and npx cap sync android.
+Open Android Studio, build the APK, and install it on your phone.
+Test the full flow: Sign in as a member, log a workout, and scan the gym QR code.
+2. Buy the Domain (myrestfit.com)
+
+Right now you are using *.vercel.app. Real gyms need a real domain.
+
+Buy myrestfit.com.
+Go to Vercel, add the domain to the Landing page, Admin, and Platform projects.
+Go to Render, add api.myrestfit.com to the API.
+Update your Render Environment Variables (ADMIN_URL, LANDING_URL, CORS_ORIGINS) to the new domains.
+3. Set up Termii (SMS/WhatsApp)
+
+Right now, setup links and OTPs are printing to the Render console because your Termii keys might not be fully active.
+
+Log into Termii.
+Ensure you have credits.
+Ensure your Sender ID (RestFit) is approved.
+Once approved, the platform will automatically send SMS/WhatsApp messages instead of printing to the console.
+4. Recruit Your First Pilot Gym
+
+The code is ready. Now go get a real customer.
+
+Go to a local gym in Lagos.
+Show them the landing page on your phone.
+Let them fill out the application.
+Approve them from your Platform Admin.
+Onboard their staff.
+Watch them use it. If they get confused, that's what you fix next.
+5. Address the Render Free Tier Sleep Issue
+
+As you saw during testing, when Render sleeps, the API takes 50 seconds to wake up. If a gym owner tries to log in and sees "Something went wrong" because the API is asleep, they will think the app is broken.
+
+When you get your first paying customer, upgrade Render to the $7/month tier so the server never sleeps. It is the cost of doing business.

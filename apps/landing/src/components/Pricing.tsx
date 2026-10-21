@@ -12,12 +12,11 @@ const FEATURES = [
   "Founding member pricing (locked in)",
 ];
 
+
+
 export function Pricing() {
   return (
-    <section
-      id="pricing"
-      className="border-t border-white/[0.06] px-4 py-16 sm:px-6 sm:py-28"
-    >
+    <section id="pricing" className="border-t border-white/[0.06] px-4 py-16 sm:px-6 sm:py-28">
       <div className="mx-auto max-w-3xl">
         <div className="text-center">
           <p className="eyebrow">Pricing</p>

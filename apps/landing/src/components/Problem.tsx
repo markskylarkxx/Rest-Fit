@@ -26,9 +26,9 @@ const PROBLEMS = [
 
 export function Problem() {
   return (
-    <section id="problem" className="px-6 py-20 sm:py-28">
+    <section id="problem" className="px-4 py-16 sm:px-6 sm:py-28">
       <div className="mx-auto max-w-6xl">
-        <div className="max-w-2xl">
+        <div className="max-w-2xl text-center sm:text-left mx-auto sm:mx-0">
           <p className="eyebrow">The problem</p>
           <h2 className="h2 mt-4">You already know this feeling.</h2>
           <p className="body-lg mt-4">
@@ -42,7 +42,7 @@ export function Problem() {
           {PROBLEMS.map((p, i) => (
             <div
               key={i}
-              className="grid gap-6 rounded-card border border-white/[0.06] bg-white/[0.02] p-8 md:grid-cols-2 md:gap-12 md:p-10"
+              className="grid gap-6 rounded-card border border-white/[0.06] bg-white/[0.02] p-6 sm:p-8 md:grid-cols-2 md:gap-12 md:p-10"
             >
               <div>
                 <div className="grid h-11 w-11 place-items-center rounded-xl bg-amber/10 text-amber">
@@ -70,8 +70,7 @@ export function Problem() {
           ))}
         </div>
 
-        {/* Stat callout */}
-        <div className="mt-14 rounded-card border border-lime/20 bg-lime/[0.04] p-8 sm:p-10">
+        <div className="mt-14 rounded-card border border-lime/20 bg-lime/[0.04] p-6 sm:p-10">
           <p className="text-lg font-bold leading-relaxed sm:text-xl">
             A gym with 400 members losing 8% to churn loses{" "}
             <span className="text-lime">₦320,000 every month.</span>

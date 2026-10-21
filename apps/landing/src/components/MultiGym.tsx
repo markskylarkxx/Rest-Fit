@@ -20,12 +20,41 @@ const GYMS = [
 
 export function MultiGym() {
   return (
-    <section className="border-t border-white/[0.06] px-6 py-20 sm:py-28">
+    <section className="border-t border-white/[0.06] px-4 py-16 sm:px-6 sm:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          {/* Left: mockup (reversed from other sections) */}
-          <div className="relative order-2 lg:order-1">
-            <div className="rounded-2xl border border-white/[0.08] bg-surface p-5 shadow-2xl shadow-black/50">
+          
+          {/* Reversed order: text first on mobile */}
+          <div className="order-1 lg:order-2 text-center sm:text-left">
+            <p className="eyebrow">One login. Many gyms.</p>
+            <h2 className="h2 mt-4">
+              Their gym, your gym, and every gym they've ever joined.
+            </h2>
+            <p className="body-lg mt-6">
+              Real gym-goers in Nigeria don't train in one place. Home gym.
+              Office gym. The one near their parents' house. A boutique studio
+              on the weekend.
+            </p>
+            <p className="mt-6 text-sm leading-relaxed text-white/60">
+              No other gym software supports this. Ours does.
+            </p>
+            <p className="mt-6 text-sm leading-relaxed text-white/60">
+              Their memberships, their workout history, their streaks, their
+              check-ins — all in one app. Your gym is one of them. When they
+              travel, you're still with them.
+            </p>
+
+            <a
+              href="#signup"
+              className="mt-8 inline-flex items-center justify-center sm:justify-start w-full sm:w-auto gap-2 text-sm font-semibold text-lime transition hover:text-lime-hover"
+            >
+              Become part of it
+              <ArrowRight size={16} />
+            </a>
+          </div>
+
+          <div className="relative order-2 lg:order-1 w-full max-w-[400px] mx-auto mt-8 lg:mt-0">
+            <div className="rounded-2xl border border-white/[0.08] bg-surface p-4 sm:p-5 shadow-2xl shadow-black/50">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">
@@ -85,39 +114,6 @@ export function MultiGym() {
             </div>
 
             <div className="pointer-events-none absolute inset-0 -z-10 rounded-2xl bg-lime/[0.06] blur-3xl" />
-          </div>
-
-          {/* Right: copy */}
-          <div className="order-1 lg:order-2">
-            <p className="eyebrow">One login. Many gyms.</p>
-            <h2 className="h2 mt-4">
-              Their gym, your gym, and every gym they've ever joined.
-            </h2>
-            <p className="body-lg mt-6">
-              Real gym-goers in Nigeria don't train in one place. Home gym.
-              Office gym. The one near their parents' house. A boutique studio
-              on the weekend.
-            </p>
-            <p className="mt-6 text-sm leading-relaxed text-white/60">
-              No other gym software supports this. Ours does.
-            </p>
-            <p className="mt-6 text-sm leading-relaxed text-white/60">
-              Their memberships, their workout history, their streaks, their
-              check-ins — all in one app. Your gym is one of them. When they
-              travel, you're still with them.
-            </p>
-            <p className="mt-6 text-sm leading-relaxed text-white/60">
-              And when they come back, you see it. Because you've never lost
-              track of them.
-            </p>
-
-            <a
-              href="#signup"
-              className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-lime transition hover:text-lime-hover"
-            >
-              Become part of it
-              <ArrowRight size={16} />
-            </a>
           </div>
         </div>
       </div>

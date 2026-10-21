@@ -9,11 +9,10 @@ const QUESTIONS = [
 
 export function AIPlans() {
   return (
-    <section className="border-t border-white/[0.06] px-6 py-20 sm:py-28">
+    <section className="border-t border-white/[0.06] px-4 py-16 sm:px-6 sm:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          {/* Left: copy */}
-          <div>
+          <div className="text-center sm:text-left">
             <p className="eyebrow">AI plan generation</p>
             <h2 className="h2 mt-4">
               Your members get a personal training plan in 5 seconds.
@@ -29,25 +28,17 @@ export function AIPlans() {
               starting weights. They just show up and train.
             </p>
 
-            <p className="mt-6 text-sm leading-relaxed text-white/60">
-              That means your members have a reason to open the app on days
-              they don't come to the gym. And that means they stay engaged.
-              Which means they stay members.
-            </p>
-
             <a
               href="#signup"
-              className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-lime transition hover:text-lime-hover"
+              className="mt-8 inline-flex items-center justify-center sm:justify-start w-full sm:w-auto gap-2 text-sm font-semibold text-lime transition hover:text-lime-hover"
             >
               Get this for your gym
               <ArrowRight size={16} />
             </a>
           </div>
 
-          {/* Right: mockup */}
-          <div className="relative">
-            <div className="rounded-2xl border border-white/[0.08] bg-surface p-5 shadow-2xl shadow-black/50">
-              {/* header */}
+          <div className="relative w-full max-w-[400px] mx-auto mt-8 lg:mt-0">
+            <div className="rounded-2xl border border-white/[0.08] bg-surface p-4 sm:p-5 shadow-2xl shadow-black/50">
               <div className="mb-5 flex items-center gap-2">
                 <div className="grid h-8 w-8 place-items-center rounded-lg bg-lime/15 text-lime">
                   <Sparkles size={16} />
@@ -62,7 +53,6 @@ export function AIPlans() {
                 </div>
               </div>
 
-              {/* questions */}
               <div className="space-y-2.5">
                 {QUESTIONS.map((q) => (
                   <div
@@ -79,14 +69,12 @@ export function AIPlans() {
                 ))}
               </div>
 
-              {/* cta */}
               <div className="mt-4 rounded-xl bg-lime px-4 py-3 text-center">
                 <p className="text-xs font-bold text-canvas">
                   Build my plan →
                 </p>
               </div>
 
-              {/* result hint */}
               <div className="mt-4 rounded-xl border border-lime/20 bg-lime/[0.06] p-3">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-lime">
                   ✓ Plan generated

@@ -29,7 +29,6 @@ export function Nav() {
           : "bg-transparent")
       }
     >
-      {/* Changed px-6 to px-4 for mobile breathing room */}
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
         <a href="#" className="flex items-center gap-2.5">
           <div className="grid h-8 w-8 place-items-center rounded-lg bg-lime">

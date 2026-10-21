@@ -28,11 +28,12 @@ const ITEMS = [
   },
 ];
 
+
 export function FAQ() {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <section id="faq" className="border-t border-white/[0.06] px-6 py-20 sm:py-28">
+    <section id="faq" className="border-t border-white/[0.06] px-4 py-16 sm:px-6 sm:py-28">
       <div className="mx-auto max-w-3xl">
         <div className="text-center">
           <p className="eyebrow">Questions</p>
@@ -46,7 +47,7 @@ export function FAQ() {
               <div key={i}>
                 <button
                   onClick={() => setOpen(isOpen ? null : i)}
-                  className="flex w-full items-start justify-between gap-6 p-6 text-left transition hover:bg-white/[0.02]"
+                  className="flex w-full items-start justify-between gap-6 p-5 sm:p-6 text-left transition hover:bg-white/[0.02]"
                 >
                   <p className="text-sm font-semibold sm:text-base">{item.q}</p>
                   <div className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-white/[0.06] text-white/60">
@@ -54,7 +55,7 @@ export function FAQ() {
                   </div>
                 </button>
                 {isOpen && (
-                  <div className="px-6 pb-6 -mt-1">
+                  <div className="px-5 pb-5 -mt-1 sm:px-6 sm:pb-6">
                     <p className="text-sm leading-relaxed text-white/60">
                       {item.a}
                     </p>
@@ -64,7 +65,6 @@ export function FAQ() {
             );
           })}
         </div>
-      
       </div>
     </section>
   );

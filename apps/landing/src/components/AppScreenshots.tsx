@@ -1,6 +1,6 @@
 export function AppScreenshots() {
   return (
-    <section className="border-t border-white/[0.06] px-6 py-20 sm:py-28">
+    <section className="border-t border-white/[0.06] px-4 py-16 sm:px-6 sm:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="text-center">
           <p className="eyebrow">See it in action</p>
@@ -11,7 +11,7 @@ export function AppScreenshots() {
           </p>
         </div>
 
-        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 justify-items-center">
           <PhoneFrame label="Home" fileName="home.png" />
           <PhoneFrame label="Log workout" fileName="log.png" />
           <PhoneFrame label="Progress" fileName="progress.png" />
@@ -34,13 +34,10 @@ function PhoneFrame({
   fileName: string;
 }) {
   return (
-    <div className="flex flex-col items-center">
-      <div className="relative w-full max-w-[240px]">
-        {/* phone body */}
+    <div className="flex flex-col items-center w-full max-w-[240px]">
+      <div className="relative w-full max-w-[200px] sm:max-w-[240px]">
         <div className="relative aspect-[9/19] w-full rounded-[2rem] border-[6px] border-white/[0.08] bg-[#1a1a1a] p-1.5 shadow-2xl shadow-black/60">
-          {/* notch */}
           <div className="absolute left-1/2 top-2 z-10 h-4 w-20 -translate-x-1/2 rounded-full bg-black" />
-          {/* screen */}
           <div className="relative h-full w-full overflow-hidden rounded-[1.6rem] bg-canvas">
             <img
               src={`/screens/${fileName}`}
@@ -50,7 +47,6 @@ function PhoneFrame({
           </div>
         </div>
       </div>
-
       <p className="mt-4 text-xs font-medium text-white/50">{label}</p>
     </div>
   );

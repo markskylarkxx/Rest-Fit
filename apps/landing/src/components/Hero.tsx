@@ -11,7 +11,6 @@ export function Hero() {
           <div className="text-center lg:text-left">
             <p className="eyebrow">Gym management for Nigeria</p>
 
-            {/* Added tracking-tight and adjusted sizes for mobile */}
             <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
               Your members are leaving.
               <br />
@@ -20,15 +19,14 @@ export function Hero() {
               </span>
             </h1>
 
-            <p className="mt-6 max-w-xl text-base sm:text-lg text-white/60 mx-auto lg:mx-0">
+            <p className="mt-6 max-w-xl text-base text-white/60 sm:text-lg mx-auto lg:mx-0">
               The gym platform that shows you who's about to quit, automates
               WhatsApp reminders, and gives your members a fitness app they'll
               actually open.
             </p>
 
-            {/* Centered buttons on mobile */}
-            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
-              <a href="#signup" className="btn-primary w-full justify-center sm:w-auto">
+            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
+              <a href="#signup" className="btn-primary w-full sm:w-auto justify-center">
                 Sign up your gym
                 <ArrowRight size={16} />
               </a>
@@ -36,7 +34,7 @@ export function Hero() {
                 href={whatsappLink()}
                 target="_blank"
                 rel="noreferrer"
-                className="btn-secondary w-full justify-center sm:w-auto"
+                className="btn-secondary w-full sm:w-auto justify-center"
               >
                 <MessageCircle size={16} />
                 I'm interested
@@ -63,7 +61,6 @@ export function Hero() {
             </ul>
           </div>
 
-          {/* Dashboard Mockup */}
           <div className="relative mt-12 lg:mt-0 w-full max-w-lg mx-auto lg:max-w-none">
             <div className="relative rounded-2xl border border-white/[0.08] bg-surface p-4 sm:p-5 shadow-2xl shadow-black/50">
               <div className="mb-4 flex items-center gap-1.5">
@@ -111,12 +108,6 @@ export function Hero() {
                       <span className="font-medium">Amara Eze</span>
                       <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[9px] font-semibold text-amber-400">
                         Lapsed
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-medium">Tunde Bello</span>
-                      <span className="rounded-full bg-lime/20 px-2 py-0.5 text-[9px] font-semibold text-lime">
-                        Training elsewhere
                       </span>
                     </div>
                   </div>
