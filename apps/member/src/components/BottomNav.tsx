@@ -17,14 +17,14 @@ export function BottomNav() {
           <NavLink
             key={to}
             to={to}
-            className={({ isActive }) =>
+            className={({ isActive }: { isActive: boolean }) =>
               clsx(
                 "flex flex-col items-center gap-1 py-3 text-[11px] font-medium transition",
                 isActive ? "text-brand-400" : "text-white/40"
               )
             }
           >
-            {({ isActive }) => (
+            {({ isActive }: { isActive: boolean }) => (
               <>
                 <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
                 <span>{label}</span>
