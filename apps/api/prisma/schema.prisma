@@ -406,6 +406,8 @@ model Payment {
   orchPayRef     String?       @unique
   paymentLink    String?
   failureReason  String?
+  paystackRef    String?       @unique
+
   recordedById   String?
   recordedBy     Staff?        @relation(fields: [recordedById], references: [id])
   paidAt         DateTime?

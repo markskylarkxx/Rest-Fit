@@ -27,9 +27,10 @@ export const env = {
   TERMII_BASE_URL: optional("TERMII_BASE_URL", "https://api.ng.termii.com"),
   TERMII_SENDER_ID: optional("TERMII_SENDER_ID", "RestFit"),
   TERMII_CHANNEL: optional("TERMII_CHANNEL", "generic"),
-  // Send verification codes over WhatsApp first, SMS as fallback. Needs
-  // Termii's WhatsApp channel set up on your account.
   OTP_WHATSAPP_FIRST: optional("OTP_WHATSAPP_FIRST") === "true",
+
+  // ── Paystack ──
+  PAYSTACK_SECRET_KEY: optional("PAYSTACK_SECRET_KEY"),
 
   // Groq (required for AI plan generation)
   GROQ_API_KEY: optional("GROQ_API_KEY"),

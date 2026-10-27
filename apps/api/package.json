@@ -15,8 +15,9 @@
     "mfa:reset": "tsx scripts/reset-mfa.ts"
   },
   "dependencies": {
-    "@restfit/shared": "*",
     "@prisma/client": "^6.19.0",
+    "@restfit/shared": "*",
+    "axios": "^1.21.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

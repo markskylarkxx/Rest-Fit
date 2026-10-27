@@ -3,10 +3,12 @@ import { db } from "../lib/db.js";
 import { completeGymPayment } from "../services/gymBilling.js";
 import { completePayment } from "../services/memberships.js";
 import { verifyWebhook, type OrchPayWebhook } from "../services/orchpay.js";
+import { paystackWebhook } from "./paystack.js";
 
 // Mounted with express.raw(), so req.body is the exact bytes Orch-Pay signed.
 export const webhooksRouter = Router();
 
+// ── Orch-Pay Webhook ─────────────────────────────────
 webhooksRouter.post("/orchpay", async (req, res) => {
   const raw = Buffer.isBuffer(req.body) ? req.body.toString("utf8") : "";
   if (!verifyWebhook(raw, req.header("X-Webhook-Signature"), req.header("X-Webhook-Timestamp"))) {
@@ -19,11 +21,9 @@ webhooksRouter.post("/orchpay", async (req, res) => {
     where: { OR: [{ orchPayRef: { in: refs } }, { orchPayTxnId: { in: refs } }] },
   });
   if (!payment) {
-    // Not a member payment; maybe a gym paying for its RestFit subscription.
     const gymPayment = await db.gymPayment.findFirst({
       where: { OR: [{ orchPayRef: { in: refs } }, { orchPayTxnId: { in: refs } }] },
     });
-    // Acknowledge unknown references so Orch-Pay doesn't keep retrying them.
     if (!gymPayment) return res.json({ received: true, matched: false });
     if (event === "payment.success") await completeGymPayment(gymPayment.id, true);
     if (event === "payment.failed") await completeGymPayment(gymPayment.id, false, data.failureReason);
@@ -34,3 +34,6 @@ webhooksRouter.post("/orchpay", async (req, res) => {
   if (event === "payment.failed") await completePayment(payment.id, false, data.failureReason);
   res.json({ received: true, matched: true });
 });
+
+// ── Paystack Webhook ─────────────────────────────────
+webhooksRouter.post("/paystack", paystackWebhook);
