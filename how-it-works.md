@@ -362,3 +362,10 @@ Step 6 — Install on your phone.
 
 
 cp app/build/outputs/apk/debug/app-debug.apk ~/Downloads/restfit-debug.apk
+
+
+
+Buy the Domain (myrestfit.com). Do this today.
+Point the Domain to your Vercel Landing Page and your Render API.
+Create the LinkedIn Page on your computer (not the Android app) and add your logo.
+Upgrade Render to $7/mo before you show the product to a real gym owner.

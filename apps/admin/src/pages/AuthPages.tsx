@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router-dom";
-import { Dumbbell } from "lucide-react";
+import { Dumbbell, Eye, EyeOff } from "lucide-react"; // Added Eye icons
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -34,6 +34,9 @@ export function LoginPage() {
   const { login } = useAuth();
   const { register, handleSubmit, formState } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
   const [loginError, setLoginError] = useState<string | null>(null);
+  
+  // Added state for password visibility
+  const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = async (values: LoginInput) => {
     setLoginError(null);
@@ -68,9 +71,26 @@ export function LoginPage() {
         <Field label="Email" error={formState.errors.email?.message}>
           <Input type="email" autoComplete="email" autoFocus {...register("email")} />
         </Field>
+        
         <Field label="Password" error={formState.errors.password?.message}>
-          <Input type="password" autoComplete="current-password" {...register("password")} />
+          <div className="relative">
+            <Input 
+              type={showPassword ? "text" : "password"} 
+              autoComplete="current-password" 
+              {...register("password")} 
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </Field>
+
         <div className="-mt-2 text-right">
           <Link to="/forgot-password" className="text-xs font-medium text-brand-700">
             Forgot password?
