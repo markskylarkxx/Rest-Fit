@@ -1,17 +1,9 @@
-import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { api, errorMessage } from "../lib/api";
-import { formatNaira, daysUntil } from "../lib/format";
-import { openPaymentLink, closePaymentBrowser, onReturnFromBrowser } from "../lib/pay";
-import {
-  Button,
-  Card,
-  ErrorNote,
-  Field,
-  Input,
-  LogoCircle,
-} from "../components/ui";
+import { formatNaira } from "../lib/format";
+import { Button, Card, ErrorNote, Field, Input, LogoCircle } from "../components/ui";
 
 interface Plan {
   id: string;
@@ -31,18 +23,28 @@ interface Gym {
 
 export function JoinGymPage() {
   const navigate = useNavigate();
-  const [code, setCode] = useState("");
+  const location = useLocation();
+  const prefilledCode = (location.state as { code?: string } | null)?.code ?? "";
+
+  const [code, setCode] = useState(prefilledCode);
   const [gym, setGym] = useState<Gym | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const lookup = async (e: FormEvent) => {
-    e.preventDefault();
+  // If the code was passed in (from FindGymsPage), auto-lookup
+  useEffect(() => {
+    if (prefilledCode && !gym) {
+      lookupGym(prefilledCode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefilledCode]);
+
+  const lookupGym = async (rawCode: string) => {
     setError(null);
     setBusy(true);
     try {
       const { data } = await api.get<Gym>(
-        `/app/gyms/${code.trim().toUpperCase()}`
+        `/app/gyms/${rawCode.trim().toUpperCase()}`
       );
       setGym(data);
     } catch (err) {
@@ -52,59 +54,40 @@ export function JoinGymPage() {
     }
   };
 
+  const lookup = async (e: FormEvent) => {
+    e.preventDefault();
+    await lookupGym(code);
+  };
+
   const join = async (plan: Plan) => {
     if (!gym) return;
     setBusy(true);
     setError(null);
     try {
-      // Backend should return the new membership object directly.
-      const { data: joined } = await api.post<{
-        membershipId: string;
-        id?: string;
-      }>(`/app/gyms/${gym.joinCode}/join`, {});
-
-      const membershipId = joined.membershipId ?? joined.id;
-      if (!membershipId) throw new Error("Membership not returned by server");
-
-      const { data } = await api.post<{ paymentLink?: string }>(
-        `/app/memberships/${membershipId}/renew`,
-        { planId: plan.id }
+      const { data: joined } = await api.post<{ membershipId: string }>(
+        `/app/gyms/${gym.joinCode}/join`,
+        {}
       );
 
-      if (!data.paymentLink) {
-        navigate(`/memberships/${membershipId}`, { replace: true });
-        return;
-      }
+      const membershipId = joined.membershipId;
+      if (!membershipId) throw new Error("Membership not returned by server");
 
-      await openPaymentLink(data.paymentLink);
-
-      onReturnFromBrowser(async () => {
-        await closePaymentBrowser();
-        try {
-          const me = await api.get<{ activeUntil: string | null }>(
-            `/app/memberships/${membershipId}`
-          );
-          if (!me.data.activeUntil || daysUntil(me.data.activeUntil) <= 0) {
-            await new Promise((r) => setTimeout(r, 1500));
-          }
-        } catch {
-          /* ignore */
-        }
-        navigate(`/memberships/${membershipId}`, { replace: true });
-      });
+      // After joining, go to the membership page where they can renew via Paystack
+      navigate(`/memberships/${membershipId}`, { replace: true });
     } catch (err) {
       setError(errorMessage(err));
+    } finally {
       setBusy(false);
     }
   };
 
+  // ─── Gym found: show plan selection ─────────────────
   if (gym) {
     return (
       <div className="min-h-screen pb-20">
         <header className="px-6 pt-6 pb-4">
           <button
             onClick={() => setGym(null)}
-            aria-label="Back"
             className="inline-flex items-center gap-1 text-sm text-white/40"
           >
             <ArrowLeft size={16} /> Back
@@ -125,8 +108,15 @@ export function JoinGymPage() {
           {error && <ErrorNote message={error} />}
 
           <div>
-            <p className="label mb-3">Choose a plan</p>
+            <p className="label mb-3">Choose a plan to join</p>
             <div className="space-y-3">
+              {gym.plans.length === 0 && (
+                <Card className="p-4">
+                  <p className="text-sm text-white/50">
+                    This gym hasn't set up any plans yet.
+                  </p>
+                </Card>
+              )}
               {gym.plans.map((p) => (
                 <Card
                   key={p.id}
@@ -151,11 +141,11 @@ export function JoinGymPage() {
     );
   }
 
+  // ─── No gym yet: show code entry ─────────────────────
   return (
     <div className="min-h-screen px-6 pt-6 pb-20">
       <button
         onClick={() => navigate("/home")}
-        aria-label="Back to home"
         className="mb-8 inline-flex items-center gap-1 text-sm text-white/40"
       >
         <ArrowLeft size={16} /> Home
@@ -181,11 +171,7 @@ export function JoinGymPage() {
             onChange={(e) => setCode(e.target.value.toUpperCase())}
           />
         </Field>
-        <Button
-          type="submit"
-          disabled={busy || !code.trim()}
-          className="w-full"
-        >
+        <Button type="submit" disabled={busy || !code.trim()} className="w-full">
           {busy ? "Looking up…" : "Find gym"}
         </Button>
       </form>

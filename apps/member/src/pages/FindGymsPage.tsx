@@ -1,17 +1,38 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Search, Sparkles } from "lucide-react";
+import { ArrowLeft, MapPin, Search, Sparkles, Loader2 } from "lucide-react";
 import { InviteGymModal } from "../components/InviteGymModal";
 import { Button, Card } from "../components/ui";
+import { api, errorMessage } from "../lib/api";
+
+interface GymResult {
+  id: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  joinCode: string;
+}
 
 export function FindGymsPage() {
   const navigate = useNavigate();
   const [code, setCode] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [result, setResult] = useState<GymResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const search = () => {
-    if (code.trim()) {
-      navigate("/join", { state: { code: code.trim().toUpperCase() } });
+  const search = async () => {
+    if (!code.trim()) return;
+    setSearching(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await api.get<GymResult>(`/gyms/${code.trim().toUpperCase()}`);
+      setResult(res.data);
+    } catch (err) {
+      setError("We couldn't find a gym with that code. Check it and try again.");
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -47,15 +68,49 @@ export function FindGymsPage() {
 
         <Button
           onClick={search}
-          disabled={!code.trim()}
+          disabled={!code.trim() || searching}
           className="mt-3 w-full"
         >
-          Look up gym
+          {searching ? (
+            <>
+              <Loader2 size={16} className="animate-spin" /> Looking up…
+            </>
+          ) : (
+            "Look up gym"
+          )}
         </Button>
 
         <p className="mt-3 text-center text-xs text-white/40">
           Ask your gym's front desk for their join code
         </p>
+
+        {/* Show the found gym */}
+        {result && (
+          <Card className="mt-6 p-6">
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-400">
+              Gym found
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-white">
+              {result.name}
+            </h2>
+            {result.address && (
+              <p className="mt-1 text-sm text-white/50">{result.address}</p>
+            )}
+            <Button
+              onClick={() => navigate("/join", { state: { code: result.joinCode } })}
+              className="mt-4 w-full"
+            >
+              Join {result.name}
+            </Button>
+          </Card>
+        )}
+
+        {/* Error state */}
+        {error && (
+          <p className="mt-4 rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
+          </p>
+        )}
 
         <div className="mt-8">
           <Card className="p-6 text-center">

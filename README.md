@@ -768,3 +768,9 @@ api.myrestfit.com → Railway (backend)
 Cost: one domain ($11/year). Four subdomains free.
 
 You've already found myrestfit.com available at $10.98/year. Buy that one. Everything else is a subdomain. -->
+
+
+
+<!-- wake the api manually -->
+
+https://rest-fit-1.onrender.com/health
