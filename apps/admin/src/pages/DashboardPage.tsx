@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Check, Copy } from "lucide-react";
 import { MembershipBadge } from "../components/MembershipBadge";
 import {
   Badge,
@@ -16,6 +18,16 @@ import { useFetch } from "../lib/useFetch";
 export function DashboardPage() {
   const { staff } = useAuth();
   const { data, error, loading } = useFetch<Dashboard>("/dashboard");
+  
+  // State for the copy button
+  const [copied, setCopied] = useState(false);
+
+  const copyJoinCode = () => {
+    if (!staff?.gym.joinCode) return;
+    navigator.clipboard.writeText(staff.gym.joinCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   if (loading && !data) return <Loading />;
   if (error || !data)
@@ -65,14 +77,27 @@ export function DashboardPage() {
       </div>
 
       {staff?.gym.joinCode && (
-        <div className="card mt-4 flex flex-wrap items-center justify-between gap-3 bg-brand-50/50 p-4">
-          <p className="text-sm text-slate-600">
-            Members can join, renew and pay in the RestFit app with your gym
-            code
+        <div className="card mt-4 flex flex-wrap items-center justify-between gap-4 bg-brand-50/50 p-4">
+          <p className="text-sm text-slate-600 max-w-md">
+            Members can join, renew and pay in the RestFit app with your gym code
           </p>
-          <span className="rounded-lg bg-white px-3 py-1.5 font-mono text-lg font-semibold tracking-widest text-brand-700 ring-1 ring-brand-100">
-            {staff.gym.joinCode}
-          </span>
+          
+          <div className="flex items-center gap-2">
+            <span className="rounded-lg bg-white px-3 py-1.5 font-mono text-lg font-semibold tracking-widest text-brand-700 ring-1 ring-brand-100">
+              {staff.gym.joinCode}
+            </span>
+            <button
+              onClick={copyJoinCode}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+            >
+              {copied ? (
+                <Check size={16} className="text-green-600" />
+              ) : (
+                <Copy size={16} />
+              )}
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
         </div>
       )}
 
