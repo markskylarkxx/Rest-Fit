@@ -65,7 +65,7 @@ export function JoinGymPage() {
     await lookupGym(code);
   };
 
-  const join = async (plan: Plan) => {
+  const join = async (_plan: Plan) => {
     if (!gym) return;
 
     // Validate profile
