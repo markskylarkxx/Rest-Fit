@@ -77,7 +77,10 @@ export function JoinGymPage() {
     setBusy(true);
     setError(null);
     try {
-      const { data: joined } = await api.post<{ membershipId: string }>(
+      const { data: joined } = await api.post<{
+        memberId: string;
+        alreadyMember?: boolean;
+      }>(
         `/app/gyms/${gym.joinCode}/join`,
         {
           firstName: firstName.trim(),
@@ -88,11 +91,11 @@ export function JoinGymPage() {
         }
       );
 
-      const membershipId = joined.membershipId;
-      if (!membershipId) throw new Error("Membership not returned by server");
+      const memberId = joined.memberId;
+      if (!memberId) throw new Error("Membership not returned by server");
 
       // Navigate to membership detail page where they can renew via Paystack
-      navigate(`/memberships/${membershipId}`, { replace: true });
+      navigate(`/memberships/${memberId}`, { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
