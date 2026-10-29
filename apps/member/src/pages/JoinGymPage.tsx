@@ -31,6 +31,13 @@ export function JoinGymPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Profile form state
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [gender, setGender] = useState<"MALE" | "FEMALE" | "">("");
+  const [emergencyContact, setEmergencyContact] = useState("");
+
   useEffect(() => {
     if (prefilledCode && !gym) {
       lookupGym(prefilledCode);
@@ -58,19 +65,33 @@ export function JoinGymPage() {
     await lookupGym(code);
   };
 
-  const join = async (_plan: Plan) => {
+  const join = async (plan: Plan) => {
     if (!gym) return;
+
+    // Validate profile
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !gender) {
+      setError("Please fill in your name, email, and gender before joining.");
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
       const { data: joined } = await api.post<{ membershipId: string }>(
         `/app/gyms/${gym.joinCode}/join`,
-        {}
+        {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          gender,
+          emergencyContact: emergencyContact.trim() || undefined,
+        }
       );
 
       const membershipId = joined.membershipId;
       if (!membershipId) throw new Error("Membership not returned by server");
 
+      // Navigate to membership detail page where they can renew via Paystack
       navigate(`/memberships/${membershipId}`, { replace: true });
     } catch (err) {
       setError(errorMessage(err));
@@ -79,6 +100,7 @@ export function JoinGymPage() {
     }
   };
 
+  // ─── Gym found: show profile form + plan selection ───
   if (gym) {
     return (
       <div className="min-h-screen pb-20">
@@ -104,8 +126,61 @@ export function JoinGymPage() {
 
           {error && <ErrorNote message={error} />}
 
+          {/* Profile form */}
           <div>
-            <p className="label mb-3">Choose a plan to join</p>
+            <p className="label mb-3">Your details</p>
+            <div className="space-y-3">
+              <Field label="First name">
+                <Input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Chidi"
+                  required
+                />
+              </Field>
+              <Field label="Last name">
+                <Input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Okeke"
+                  required
+                />
+              </Field>
+              <Field label="Email">
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </Field>
+              <Field label="Gender">
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value as "MALE" | "FEMALE" | "")}
+                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white"
+                  required
+                >
+                  <option value="">Select…</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                </select>
+              </Field>
+              <Field label="Emergency contact (optional)">
+                <Input
+                  type="tel"
+                  value={emergencyContact}
+                  onChange={(e) => setEmergencyContact(e.target.value)}
+                  placeholder="0803 111 2222"
+                />
+              </Field>
+            </div>
+          </div>
+
+          {/* Plan selection */}
+          <div>
+            <p className="label mb-3">Choose a plan</p>
             <div className="space-y-3">
               {gym.plans.length === 0 && (
                 <Card className="p-4">
@@ -138,6 +213,7 @@ export function JoinGymPage() {
     );
   }
 
+  // ─── No gym yet: show code entry ───
   return (
     <div className="min-h-screen px-6 pt-6 pb-20">
       <button
@@ -167,11 +243,7 @@ export function JoinGymPage() {
             onChange={(e) => setCode(e.target.value.toUpperCase())}
           />
         </Field>
-        <Button
-          type="submit"
-          disabled={busy || !code.trim()}
-          className="w-full"
-        >
+        <Button type="submit" disabled={busy || !code.trim()} className="w-full">
           {busy ? "Looking up…" : "Find gym"}
         </Button>
       </form>

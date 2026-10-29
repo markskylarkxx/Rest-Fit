@@ -8,7 +8,6 @@ import { env } from "../env.js";
 
 export const paystackRouter = Router();
 
-// ── 1. Initialize Payment ──────────────────────────────
 paystackRouter.post("/initialize", requireAuth, async (req, res) => {
   const { planId } = req.body;
   const memberId = auth(req).staffId;
@@ -51,7 +50,6 @@ paystackRouter.post("/initialize", requireAuth, async (req, res) => {
   });
 });
 
-// ── 2. Verify Payment ──────────────────────────────────
 paystackRouter.get("/verify/:reference", requireAuth, async (req, res) => {
   const reference = String(req.params.reference);
 
@@ -63,7 +61,6 @@ paystackRouter.get("/verify/:reference", requireAuth, async (req, res) => {
   );
 
   const data = response.data.data;
-
   if (data.status !== "success") {
     throw new HttpError(400, "Payment was not successful");
   }
@@ -73,11 +70,13 @@ paystackRouter.get("/verify/:reference", requireAuth, async (req, res) => {
   await db.$transaction(async (tx) => {
     await tx.payment.update({
       where: { id: paymentId },
-      data: {
-        status: "SUCCESS",
-        paystackRef: reference, // This is now guaranteed string
-        paidAt: new Date(),
-      },
+      data: { status: "SUCCESS", paystackRef: reference, paidAt: new Date() },
+    });
+
+    // Mark the member as ACTIVE
+    await tx.member.update({
+      where: { id: memberId },
+      data: { status: "ACTIVE" },
     });
 
     const plan = await tx.plan.findUnique({ where: { id: planId } });
@@ -98,7 +97,6 @@ paystackRouter.get("/verify/:reference", requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── 3. Paystack Webhook (Server-to-server fallback) ─────
 export const paystackWebhook = async (req: any, res: any) => {
   const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body));
 
@@ -128,6 +126,12 @@ export const paystackWebhook = async (req: any, res: any) => {
         data: { status: "SUCCESS", paystackRef: reference, paidAt: new Date() },
       });
 
+      // Mark the member as ACTIVE
+      await tx.member.update({
+        where: { id: metadata.memberId },
+        data: { status: "ACTIVE" },
+      });
+
       const plan = await tx.plan.findUnique({ where: { id: metadata.planId } });
       if (plan) {
         await tx.subscription.create({
@@ -145,4 +149,4 @@ export const paystackWebhook = async (req: any, res: any) => {
   }
 
   res.sendStatus(200);
-};                                                    
+};

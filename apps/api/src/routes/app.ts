@@ -140,12 +140,6 @@ const experienceSchema = z.object({
   level: z.enum(["BEGINNER", "INTERMEDIATE", "EXPERIENCED"]),
 });
 
-// ── Sign in ──────────────────────────────────────────
-// Phone + PIN. A code (SMS) is only sent to verify a new phone or reset a
-// PIN; after that the device stays signed in with a rotating refresh token.
-// See services/memberAuth.ts. Per-IP limits sit on top of the per-phone code
-// limits in services/otp.ts. They're generous because Nigerian mobile
-// networks put many people behind one IP.
 const startLimit = rateLimit({ name: "member-start", windowMs: 60 * 60 * 1000, max: 60 });
 const codeLimit = rateLimit({ name: "member-code", windowMs: 60 * 60 * 1000, max: 20 });
 const verifyLimit = rateLimit({ name: "member-verify", windowMs: 15 * 60 * 1000, max: 30 });
@@ -167,19 +161,16 @@ async function sessionResponse(session: { userId: string; accessToken: string; r
   };
 }
 
-// Step 1: PIN for members who have one, otherwise a code is sent.
 appRouter.post("/auth/start", startLimit, async (req, res) => {
   const { phone } = otpRequestSchema.parse(req.body);
   res.json(await startSignIn(phone));
 });
 
-// "Forgot PIN" / locked PIN: send a code.
 appRouter.post("/auth/forgot-pin", codeLimit, async (req, res) => {
   const { phone } = otpRequestSchema.parse(req.body);
   res.json({ sent: true, ...(await sendResetCode(phone)) });
 });
 
-// Step 2 for new members and resets: check the code, then choose a PIN.
 appRouter.post("/auth/verify", verifyLimit, async (req, res) => {
   const { phone, code } = otpVerifySchema.parse(req.body);
   res.json(await verifyPhone(phone, code));
@@ -190,7 +181,6 @@ appRouter.post("/auth/set-pin", pinLimit, async (req, res) => {
   res.json(await sessionResponse(await setPin(pinSetupToken, pin)));
 });
 
-// Returning member on a new device.
 appRouter.post("/auth/pin", pinLimit, async (req, res) => {
   const { phone, pin } = otpRequestSchema.extend({ pin: pinSchema }).parse(req.body);
   res.json(await sessionResponse(await signInWithPin(phone, pin)));
@@ -207,7 +197,6 @@ appRouter.post("/auth/logout", refreshLimit, async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Public gym lookups ───────────────────────────────
 appRouter.get("/gyms/nearby", async (req, res) => {
   const lat = Number(req.query.lat);
   const lng = Number(req.query.lng);
@@ -313,7 +302,6 @@ appRouter.get("/gyms/:joinCode", async (req, res) => {
   res.json(gym);
 });
 
-// ── Authenticated member routes ──────────────────────
 appRouter.use(requireMember);
 
 appRouter.get("/me", async (req, res) => {
@@ -392,6 +380,7 @@ appRouter.post("/gyms/:joinCode/join", async (req, res) => {
           phone: user.phone,
           userId,
           checkInCode: newCheckInCode(),
+          status: "PENDING", // ← NEW: starts as pending until payment is recorded
         },
       });
 
@@ -480,10 +469,6 @@ appRouter.post(
   }
 );
 
-// ── Workouts ─────────────────────────────────────────
-// IMPORTANT: /workouts/last/:exerciseId must be registered BEFORE
-// /workouts/:id, or Express will treat "last" as an id.
-
 appRouter.get("/workouts", async (req, res) => {
   const { userId } = memberAuth(req);
   res.json(await listWorkouts(userId));
@@ -513,7 +498,6 @@ appRouter.delete("/workouts/:id", async (req, res) => {
   res.json({ deleted: true });
 });
 
-// ── Templates ────────────────────────────────────────
 appRouter.get("/templates", async (req, res) => {
   const { userId } = memberAuth(req);
   res.json(await listTemplates(userId));
@@ -532,13 +516,11 @@ appRouter.delete("/templates/:id", async (req, res) => {
   res.json({ deleted: true });
 });
 
-// ── Personal records ─────────────────────────────────
 appRouter.get("/prs", async (req, res) => {
   const { userId } = memberAuth(req);
   res.json(await listPRs(userId));
 });
 
-// ── Stats (Progress screen) ──────────────────────────
 appRouter.get("/stats/volume", async (req, res) => {
   const { userId } = memberAuth(req);
   res.json(await getVolumeByWeek(userId, 8));
@@ -554,7 +536,6 @@ appRouter.get("/stats/best/:exerciseName", async (req, res) => {
   res.json(await getBestSetSeries(userId, param(req.params.exerciseName)));
 });
 
-// ── Body weight ──────────────────────────────────────
 appRouter.get("/weights", async (req, res) => {
   const { userId } = memberAuth(req);
   res.json(await listWeights(userId));
@@ -572,13 +553,6 @@ appRouter.delete("/weights/:id", async (req, res) => {
   await deleteWeight(userId, param(req.params.id));
   res.json({ deleted: true });
 });
-
-// ── Training plans ───────────────────────────────────
-// Route registration order matters:
-//   1. /training-plans/current  (literal)
-//   2. /training-plans/generate (literal)
-//   3. /training-plans          (list)
-//   4. /training-plans/:slug    (param, last)
 
 appRouter.get("/training-plans/current", async (req, res) => {
   const { userId } = memberAuth(req);
@@ -619,7 +593,6 @@ appRouter.post("/training-plans/:slug/enroll", async (req, res) => {
   res.status(201).json(result);
 });
 
-// ── Cloud backup (safety net for pre-migration installs) ──
 appRouter.post("/workouts/backup", async (req, res) => {
   const { userId } = memberAuth(req);
   const payload = backupSchema.parse(req.body);

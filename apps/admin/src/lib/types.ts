@@ -29,6 +29,7 @@ export interface MemberSummary {
   lastName: string;
   phone: string;
   email: string | null;
+  status: string;
   checkInCode: string;
   activeUntil: string | null;
   planName: string | null;

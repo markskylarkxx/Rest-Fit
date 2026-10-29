@@ -223,6 +223,8 @@ model Member {
   gender           Gender?
   emergencyContact String?
   notes            String?
+  status           String         @default("PENDING") // PENDING | ACTIVE | INACTIVE
+
   checkInCode      String         @unique
   createdAt        DateTime       @default(now())
   subscriptions    Subscription[]

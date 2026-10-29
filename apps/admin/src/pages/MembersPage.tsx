@@ -27,7 +27,6 @@ export function MembersPage() {
   const [status, setStatus] = useState("all");
   const [adding, setAdding] = useState(false);
 
-  // Wait for typing to pause before searching.
   useEffect(() => {
     const t = setTimeout(() => setQuery(q), 250);
     return () => clearTimeout(t);
@@ -77,8 +76,9 @@ export function MembersPage() {
                 <th className="table-head">Name</th>
                 <th className="table-head">Phone</th>
                 <th className="table-head">Plan</th>
-                <th className="table-head">Active until</th>
                 <th className="table-head">Status</th>
+                <th className="table-head">Active until</th>
+                <th className="table-head">Membership</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -91,6 +91,23 @@ export function MembersPage() {
                   </td>
                   <td className="table-cell text-slate-600">{formatPhone(m.phone)}</td>
                   <td className="table-cell text-slate-600">{m.planName ?? "—"}</td>
+                  <td className="table-cell">
+                    {m.status === "PENDING" && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        Pending
+                      </span>
+                    )}
+                    {m.status === "ACTIVE" && (
+                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                        Active
+                      </span>
+                    )}
+                    {m.status === "INACTIVE" && (
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                        Inactive
+                      </span>
+                    )}
+                  </td>
                   <td className="table-cell text-slate-600">{formatDate(m.activeUntil)}</td>
                   <td className="table-cell">
                     <MembershipBadge activeUntil={m.activeUntil} />
@@ -109,7 +126,6 @@ export function MembersPage() {
 
 type FormValues = z.input<typeof memberSchema>;
 
-// Used for both adding a member and editing one (when `member` is passed).
 export function MemberFormModal({
   open,
   onClose,

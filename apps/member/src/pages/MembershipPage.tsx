@@ -16,6 +16,7 @@ interface MembershipDetail {
   id: string;
   firstName: string;
   lastName: string;
+  status: string; // ← NEW
   activeUntil: string | null;
   checkInCode: string;
   gym: { id: string; name: string; address: string | null };
@@ -80,6 +81,17 @@ export function MembershipPage() {
       </header>
 
       <div className="space-y-5 px-6">
+        {/* Pending banner */}
+        {data.status === "PENDING" && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+            <p className="text-sm font-medium text-amber-300">Membership pending</p>
+            <p className="mt-1 text-xs text-amber-200/80">
+              Your membership at {data.gym.name} is awaiting payment. Tap Renew
+              below to activate it, or visit the front desk to pay in person.
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center gap-4">
           <LogoCircle name={data.gym.name} size="lg" />
           <div className="min-w-0 flex-1">

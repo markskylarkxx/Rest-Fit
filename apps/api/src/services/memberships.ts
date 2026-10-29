@@ -8,10 +8,6 @@ import { activateSubscription } from "./subscriptions.js";
 
 export const formatDate = (d: Date) => d.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
 
-// Starts (or renews) a membership. Offline payments are recorded as paid and
-// the membership starts immediately; online payments return an Orch-Pay link
-// and the membership starts when the payment webhook arrives.
-// staffId is null when the member starts it themselves from the app.
 export async function startSubscription(gymId: string, staffId: string | null, memberId: string, input: StartSubscriptionInput) {
   const [member, plan] = await Promise.all([
     db.member.findFirst({ where: { id: memberId, gymId }, include: { gym: true } }),
@@ -35,6 +31,13 @@ export async function startSubscription(gymId: string, staffId: string | null, m
           recordedById: staffId,
         },
       });
+
+      // Mark the member as ACTIVE on offline payment
+      await tx.member.update({
+        where: { id: memberId },
+        data: { status: "ACTIVE" },
+      });
+
       return { subscription: await activateSubscription(sub.id, tx), payment };
     });
     notifyPaid(member.phone, member.firstName, member.gym.name, plan.name, result.subscription.endDate!);
@@ -78,8 +81,6 @@ export async function startSubscription(gymId: string, staffId: string | null, m
   }
 }
 
-// Settles an online payment. Safe to call more than once for the same payment
-// (webhook retries, manual refresh), because it ignores payments already settled.
 export async function completePayment(paymentId: string, success: boolean, failureReason?: string) {
   const payment = await db.payment.findUnique({ where: { id: paymentId } });
   if (!payment || payment.status !== "PENDING") return;
@@ -96,6 +97,13 @@ export async function completePayment(paymentId: string, success: boolean, failu
 
   const subscription = await db.$transaction(async (tx) => {
     await tx.payment.update({ where: { id: paymentId }, data: { status: "SUCCESS", paidAt: new Date() } });
+
+    // Mark the member as ACTIVE on successful online payment
+    await tx.member.update({
+      where: { id: payment.memberId },
+      data: { status: "ACTIVE" },
+    });
+
     return payment.subscriptionId ? activateSubscription(payment.subscriptionId, tx) : null;
   });
 
@@ -112,9 +120,6 @@ function notifyPaid(phone: string, firstName: string, gymName: string, planName:
   ).catch((err) => console.error("Could not send payment confirmation", err));
 }
 
-
-// Asks Orch-Pay for an online payment's latest status, in case its webhook
-// was missed, and settles the payment if it has finished.
 export async function refreshPayment(paymentId: string) {
   const payment = await db.payment.findUniqueOrThrow({ where: { id: paymentId } });
   if (payment.status === "PENDING") {
