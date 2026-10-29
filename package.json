@@ -5,6 +5,10 @@
     "apps/*",
     "packages/*"
   ],
+  "overrides": {
+    "vite": "5.4.0",
+    "@vitejs/plugin-react": "4.3.1"
+  },
   "scripts": {
     "dev": "npm run dev -w @restfit/api & npm run dev -w @restfit/admin & wait",
     "dev:api": "npm run dev -w @restfit/api",
