@@ -84,7 +84,7 @@ async function membershipsFor(userId: string) {
     activeUntil: subscriptions[0]?.endDate ?? null,
     planName: subscriptions[0]?.plan.name ?? null,
   }));
-}
+} 
 
 async function ownedMember(
   req: Parameters<typeof memberAuth>[0],
