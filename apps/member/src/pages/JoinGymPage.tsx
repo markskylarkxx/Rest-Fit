@@ -31,7 +31,6 @@ export function JoinGymPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // If the code was passed in (from FindGymsPage), auto-lookup
   useEffect(() => {
     if (prefilledCode && !gym) {
       lookupGym(prefilledCode);
@@ -59,7 +58,7 @@ export function JoinGymPage() {
     await lookupGym(code);
   };
 
-  const join = async (plan: Plan) => {
+  const join = async (_plan: Plan) => {
     if (!gym) return;
     setBusy(true);
     setError(null);
@@ -72,7 +71,6 @@ export function JoinGymPage() {
       const membershipId = joined.membershipId;
       if (!membershipId) throw new Error("Membership not returned by server");
 
-      // After joining, go to the membership page where they can renew via Paystack
       navigate(`/memberships/${membershipId}`, { replace: true });
     } catch (err) {
       setError(errorMessage(err));
@@ -81,7 +79,6 @@ export function JoinGymPage() {
     }
   };
 
-  // ─── Gym found: show plan selection ─────────────────
   if (gym) {
     return (
       <div className="min-h-screen pb-20">
@@ -141,7 +138,6 @@ export function JoinGymPage() {
     );
   }
 
-  // ─── No gym yet: show code entry ─────────────────────
   return (
     <div className="min-h-screen px-6 pt-6 pb-20">
       <button
@@ -171,7 +167,11 @@ export function JoinGymPage() {
             onChange={(e) => setCode(e.target.value.toUpperCase())}
           />
         </Field>
-        <Button type="submit" disabled={busy || !code.trim()} className="w-full">
+        <Button
+          type="submit"
+          disabled={busy || !code.trim()}
+          className="w-full"
+        >
           {busy ? "Looking up…" : "Find gym"}
         </Button>
       </form>
