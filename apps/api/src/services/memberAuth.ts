@@ -15,14 +15,14 @@ const MAX_PIN_FAILURES = 5;
 
 const hashToken = (token: string) => crypto.createHash("sha256").update(token).digest("hex");
 
-// ── PIN rules ────────────────────────────────────────
+//PIN rules
 const COMMON_PINS = new Set(["1212", "1004", "2000", "6969", "1122", "1313", "4321", "2580", "0852", "1010", "2020", "2021", "2022", "2023", "2024", "2025", "2026"]);
 
 export function pinProblem(pin: string): string | null {
   if (!/^\d{4}$/.test(pin)) return "Your PIN must be exactly 4 digits";
   if (/^(\d)\1{3}$/.test(pin)) return "Don't use the same digit four times";
   const digits = pin.split("").map(Number);
-  const steps = digits.slice(1).map((d, i) => d - digits[i]);
+  const steps = digits.slice(1).map((d, i) =>  d - digits[i]);
   if (steps.every((s) => s === 1) || steps.every((s) => s === -1)) return "Don't use digits in order, like 1234";
   if (COMMON_PINS.has(pin)) return "That PIN is too easy to guess. Choose another";
   return null;
@@ -43,7 +43,7 @@ function readPinSetupToken(token: string) {
   throw new HttpError(401, "That took too long. Start again with your phone number");
 }
 
-// ── Sessions ─────────────────────────────────────────
+// Sessions 
 async function issueSession(userId: string) {
   const refreshToken = crypto.randomBytes(32).toString("base64url");
   await db.memberSession.create({

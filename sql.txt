@@ -1,0 +1,6 @@
+DELETE FROM "CheckIn" WHERE "gymId" = (SELECT id FROM "Gym" WHERE "joinCode" = 'TESTD6Q');
+DELETE FROM "Payment" WHERE "gymId" = (SELECT id FROM "Gym" WHERE "joinCode" = 'TESTD6Q');
+DELETE FROM "Subscription" WHERE "gymId" = (SELECT id FROM "Gym" WHERE "joinCode" = 'TESTD6Q');
+DELETE FROM "Member" WHERE "gymId" = (SELECT id FROM "Gym" WHERE "joinCode" = 'TESTD6Q');
+
+That wipes all members for Test Gym Lekki.

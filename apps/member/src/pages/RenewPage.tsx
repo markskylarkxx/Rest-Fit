@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { usePaystackPayment } from "react-paystack";
 import { api, errorMessage } from "../lib/api";
-import { formatNaira, daysUntil } from "../lib/format";
-import {
-  openPaymentLink,
-  closePaymentBrowser,
-  onReturnFromBrowser,
-} from "../lib/pay";
+import { formatNaira } from "../lib/format";
 import { Button, Card, ErrorNote, Spinner } from "../components/ui";
 
 interface Plan {
@@ -22,18 +18,45 @@ export function RenewPage() {
   const navigate = useNavigate();
   const [plans, setPlans] = useState<Plan[] | null>(null);
   const [gymName, setGymName] = useState("");
+  const [memberEmail, setMemberEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+
+  // Paystack config — set once we know which plan the user is paying for
+  const [paystackConfig, setPaystackConfig] = useState<{
+    reference: string;
+    email: string;
+    amount: number;
+    publicKey: string;
+  } | null>(null);
+
+  // This must be called unconditionally at the top level (hooks rule)
+  const initializePayment = usePaystackPayment(
+    paystackConfig
+      ? {
+          reference: paystackConfig.reference,
+          email: paystackConfig.email,
+          amount: paystackConfig.amount,
+          publicKey: paystackConfig.publicKey,
+        }
+      : {
+          reference: "",
+          email: "",
+          amount: 0,
+          publicKey: "",
+        }
+  );
 
   useEffect(() => {
     api
       .get<{
         gym: { name: string; joinCode?: string };
+        email?: string | null;
         plans?: Plan[];
       }>(`/app/memberships/${id}`)
       .then(async (res) => {
         setGymName(res.data.gym.name);
-        // If backend returns plans inline, use them. Otherwise look up by join code.
+        setMemberEmail(res.data.email ?? "");
         if (res.data.plans && res.data.plans.length > 0) {
           setPlans(res.data.plans);
           return;
@@ -50,42 +73,55 @@ export function RenewPage() {
   }, [id]);
 
   const renew = async (plan: Plan) => {
+    if (!memberEmail) {
+      setError("Add an email address before paying online.");
+      return;
+    }
     setBusy(plan.id);
     setError(null);
     try {
-      const { data } = await api.post<{ paymentLink?: string }>(
-        `/app/memberships/${id}/renew`,
-        { planId: plan.id }
-      );
+      const { data } = await api.post<{
+        paymentId: string;
+        authorization_url: string;
+        reference: string;
+      }>(`/app/memberships/${id}/renew`, { planId: plan.id });
 
-      if (!data.paymentLink) {
-        navigate(`/memberships/${id}`, { replace: true });
-        return;
-      }
-
-      await openPaymentLink(data.paymentLink);
-
-      // When the user comes back to the app, close the browser and refresh.
-      onReturnFromBrowser(async () => {
-        await closePaymentBrowser();
-        try {
-          const me = await api.get<{ activeUntil: string | null }>(
-            `/app/memberships/${id}`
-          );
-          // Give the webhook a moment if still pending
-          if (!me.data.activeUntil || daysUntil(me.data.activeUntil) <= 0) {
-            await new Promise((r) => setTimeout(r, 1500));
-          }
-        } catch {
-          /* ignore */
-        }
-        navigate(`/memberships/${id}`, { replace: true });
+      // Set config, then trigger Paystack modal
+      setPaystackConfig({
+        reference: data.reference,
+        email: memberEmail,
+        amount: plan.priceKobo,
+        publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "",
       });
     } catch (err) {
       setError(errorMessage(err));
       setBusy(null);
     }
   };
+
+  // When config is set, open Paystack
+  useEffect(() => {
+    if (!paystackConfig) return;
+
+    initializePayment({
+      onSuccess: async (ref: { reference: string }) => {
+        try {
+          await api.get(`/member/payments/verify/${ref.reference}`);
+        } catch {
+          // webhook will handle it if verify fails
+        }
+        setPaystackConfig(null);
+        setBusy(null);
+        navigate(`/memberships/${id}`, { replace: true });
+      },
+      onClose: () => {
+        setPaystackConfig(null);
+        setBusy(null);
+        setError("Payment cancelled.");
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paystackConfig]);
 
   return (
     <div className="min-h-screen px-6 pt-6 pb-20">

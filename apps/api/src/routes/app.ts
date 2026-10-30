@@ -1,4 +1,5 @@
 import { Router } from "express";
+import axios from "axios";
 import { z } from "zod";
 import {
   joinGymSchema,
@@ -10,9 +11,10 @@ import {
 import { newCheckInCode } from "../lib/codes.js";
 import { db } from "../lib/db.js";
 import { HttpError, notFound } from "../lib/errors.js";
+import { env } from "../env.js";
 import { memberAuth, requireMember } from "../middleware/auth.js";
 import { distanceKm, findNearbyGyms } from "../services/places.js";
-import { refreshPayment, startSubscription } from "../services/memberships.js";
+import { refreshPayment } from "../services/memberships.js";
 import { refreshSession, revokeSession, sendResetCode, setPin, signInWithPin, startSignIn, verifyPhone } from "../services/memberAuth.js";
 import { rateLimit } from "../lib/rateLimit.js";
 import {
@@ -380,7 +382,7 @@ appRouter.post("/gyms/:joinCode/join", async (req, res) => {
           phone: user.phone,
           userId,
           checkInCode: newCheckInCode(),
-          status: "PENDING", // ← NEW: starts as pending until payment is recorded
+          status: "PENDING",
         },
       });
 
@@ -439,20 +441,52 @@ appRouter.patch("/memberships/:memberId", async (req, res) => {
   res.json(updated);
 });
 
+// ── Renew via Paystack ───────────────────────────────
 appRouter.post("/memberships/:memberId/renew", async (req, res) => {
   const member = await ownedMember(req, param(req.params.memberId));
   const { planId } = memberRenewSchema.parse(req.body);
-  const { subscription, payment } = await startSubscription(
-    member.gymId,
-    null,
-    member.id,
-    { planId, method: "ONLINE" }
+
+  const plan = await db.plan.findFirst({
+    where: { id: planId, gymId: member.gymId, active: true },
+  });
+  if (!plan) throw notFound("Plan");
+  if (!member.email) {
+    throw new HttpError(400, "Add an email address before paying online");
+  }
+
+  // Create the pending payment first
+  const payment = await db.payment.create({
+    data: {
+      gymId: member.gymId,
+      memberId: member.id,
+      amountKobo: plan.priceKobo,
+      method: "ONLINE",
+      status: "PENDING",
+    },
+  });
+
+  // Initialize Paystack
+  const response = await axios.post(
+    "https://api.paystack.co/transaction/initialize",
+    {
+      email: member.email,
+      amount: plan.priceKobo,
+      metadata: {
+        paymentId: payment.id,
+        planId: plan.id,
+        memberId: member.id,
+      },
+    },
+    {
+      headers: { Authorization: `Bearer ${env.PAYSTACK_SECRET_KEY}` },
+    }
   );
+
   res.status(201).json({
-    subscriptionId: subscription.id,
     paymentId: payment.id,
-    paymentLink: payment.paymentLink,
-    status: payment.status,
+    authorization_url: response.data.data.authorization_url,
+    reference: response.data.data.reference,
+    status: "PENDING",
   });
 });
 
